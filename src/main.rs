@@ -14,9 +14,7 @@ use clap::Parser;
 use crossterm::{
     event::{Event, EventStream, KeyEventKind},
     execute,
-    terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-    },
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures_util::StreamExt;
 use ratatui::{backend::CrosstermBackend, Terminal};
@@ -162,10 +160,7 @@ fn setup_logging() -> Result<()> {
         .open(&log_path)?;
 
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env()
-                .add_directive("skillforge=info".parse()?),
-        )
+        .with_env_filter(EnvFilter::from_default_env().add_directive("skillforge=info".parse()?))
         .with_writer(file)
         .with_ansi(false)
         .init();

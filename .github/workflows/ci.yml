@@ -21,7 +21,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.86.0"
+          toolchain: "1.88.0"
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
@@ -41,7 +41,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.86.0"
+          toolchain: "1.88.0"
 
       - uses: Swatinem/rust-cache@v2
 
@@ -71,7 +71,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.86.0"
+          toolchain: "1.88.0"
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2

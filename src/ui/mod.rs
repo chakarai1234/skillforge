@@ -3,8 +3,8 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{
-        Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Wrap,
+        Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar, ScrollbarOrientation,
+        ScrollbarState, Wrap,
     },
     Frame,
 };
@@ -14,10 +14,10 @@ use crate::config::get_skills_dir;
 use crate::types::{AppState, AppTab, Focus};
 
 // ── Color palette ──────────────────────────────────────────────────────────────
-const GOLD: Color = Color::Yellow;           // #FFD700 — focused border
+const GOLD: Color = Color::Yellow; // #FFD700 — focused border
 const BRIGHT_YELLOW: Color = Color::LightYellow; // #FFFF00 — selected item
-const AMBER: Color = Color::Rgb(255, 165, 0);    // #FFA500 — buttons / titles
-const GREY: Color = Color::DarkGray;             // unfocused border
+const AMBER: Color = Color::Rgb(255, 165, 0); // #FFA500 — buttons / titles
+const GREY: Color = Color::DarkGray; // unfocused border
 const SELECTED_BG: Color = Color::Rgb(60, 50, 0);
 const INSTALLED_GREEN: Color = Color::LightGreen;
 const ACTIVE_GREEN: Color = Color::Green;
@@ -160,10 +160,7 @@ fn render_tool_list_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 
     let title = Line::from(vec![
         Span::styled(" AI Coding Tools ", title_style()),
-        Span::styled(
-            format!("  {}", skills_path),
-            Style::default().fg(DIM_TEXT),
-        ),
+        Span::styled(format!("  {}", skills_path), Style::default().fg(DIM_TEXT)),
     ]);
 
     let block = Block::default()
@@ -221,7 +218,9 @@ fn render_tool_list(frame: &mut Frame, area: Rect, app: &mut App) {
                 Span::raw("  ")
             };
             let name_style = if checked {
-                Style::default().fg(BRIGHT_YELLOW).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(BRIGHT_YELLOW)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(BODY_TEXT)
             };
@@ -298,7 +297,10 @@ fn render_skill_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 fn render_skill_name_input(frame: &mut Frame, area: Rect, app: &App) {
     let focused = app.focus == Focus::SkillName;
     let content = if app.skill_name.is_empty() && !focused {
-        Span::styled("optional — defaults to tool name", Style::default().fg(DIM_TEXT))
+        Span::styled(
+            "optional — defaults to tool name",
+            Style::default().fg(DIM_TEXT),
+        )
     } else {
         Span::styled(app.skill_name.as_str(), Style::default().fg(BODY_TEXT))
     };
@@ -393,11 +395,13 @@ fn render_skill_output(frame: &mut Frame, area: Rect, app: &mut App) {
         let visible = area.height.saturating_sub(2) as usize;
         if line_count > visible {
             let sb = Scrollbar::new(ScrollbarOrientation::VerticalRight);
-            let mut sb_state =
-                ScrollbarState::new(line_count).position(app.output_scroll as usize);
+            let mut sb_state = ScrollbarState::new(line_count).position(app.output_scroll as usize);
             frame.render_stateful_widget(
                 sb,
-                area.inner(Margin { horizontal: 0, vertical: 1 }),
+                area.inner(Margin {
+                    horizontal: 0,
+                    vertical: 1,
+                }),
                 &mut sb_state,
             );
         }
@@ -445,7 +449,9 @@ fn render_provider_list(frame: &mut Frame, area: Rect, app: &App) {
                 Span::styled(" ✗", Style::default().fg(ERROR_COLOR))
             };
             let name_style = if is_active {
-                Style::default().fg(BRIGHT_YELLOW).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(BRIGHT_YELLOW)
+                    .add_modifier(Modifier::BOLD)
             } else if is_editing {
                 Style::default().fg(BODY_TEXT)
             } else {
@@ -468,12 +474,11 @@ fn render_provider_list(frame: &mut Frame, area: Rect, app: &App) {
     let mut list_state = ratatui::widgets::ListState::default();
     list_state.select(Some(app.editing_provider_idx));
 
-    let list = List::new(items)
-        .highlight_style(
-            Style::default()
-                .bg(SELECTED_BG)
-                .add_modifier(Modifier::BOLD),
-        );
+    let list = List::new(items).highlight_style(
+        Style::default()
+            .bg(SELECTED_BG)
+            .add_modifier(Modifier::BOLD),
+    );
 
     frame.render_stateful_widget(list, rows[0], &mut list_state);
 
@@ -505,8 +510,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
         active_badge,
     ]);
 
-    let right_focus =
-        matches!(app.focus, Focus::ApiKeyField | Focus::ModelField);
+    let right_focus = matches!(app.focus, Focus::ApiKeyField | Focus::ModelField);
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
@@ -563,7 +567,11 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
 
     let key_widget = Paragraph::new(Span::styled(
         format!(" {}", key_display),
-        Style::default().fg(if key_focused { BRIGHT_YELLOW } else { BODY_TEXT }),
+        Style::default().fg(if key_focused {
+            BRIGHT_YELLOW
+        } else {
+            BODY_TEXT
+        }),
     ))
     .block(
         Block::default()
@@ -580,10 +588,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
             app.key_cursor // same position, just masked characters
         };
         let cx = rows[2].x + 2 + display_cursor as u16;
-        frame.set_cursor_position((
-            cx.min(rows[2].x + rows[2].width - 2),
-            rows[2].y + 1,
-        ));
+        frame.set_cursor_position((cx.min(rows[2].x + rows[2].width - 2), rows[2].y + 1));
     }
 
     // ── Model label ──
@@ -616,15 +621,14 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
         // Arrow navigator: ◀ model-name ▶  (n/total)
         let total = entry.available_models.len();
         let idx = entry.model_idx.min(total.saturating_sub(1));
-        let nav_text = format!(
-            " ◀  {}  ▶   ({}/{})",
-            entry.model,
-            idx + 1,
-            total
-        );
+        let nav_text = format!(" ◀  {}  ▶   ({}/{})", entry.model, idx + 1, total);
         Paragraph::new(Span::styled(
             nav_text,
-            Style::default().fg(if model_focused { BRIGHT_YELLOW } else { BODY_TEXT }),
+            Style::default().fg(if model_focused {
+                BRIGHT_YELLOW
+            } else {
+                BODY_TEXT
+            }),
         ))
         .block(
             Block::default()
@@ -635,7 +639,11 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
         // Plain text input (no models fetched yet)
         Paragraph::new(Span::styled(
             format!(" {}", entry.model),
-            Style::default().fg(if model_focused { BRIGHT_YELLOW } else { BODY_TEXT }),
+            Style::default().fg(if model_focused {
+                BRIGHT_YELLOW
+            } else {
+                BODY_TEXT
+            }),
         ))
         .block(
             Block::default()
@@ -648,10 +656,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
     // Only show text cursor in plain-text editing mode
     if model_focused && entry.available_models.is_empty() && !entry.models_loading {
         let cx = rows[5].x + 2 + app.model_cursor as u16;
-        frame.set_cursor_position((
-            cx.min(rows[5].x + rows[5].width - 2),
-            rows[5].y + 1,
-        ));
+        frame.set_cursor_position((cx.min(rows[5].x + rows[5].width - 2), rows[5].y + 1));
     }
 
     // ── Env var info ──
@@ -670,10 +675,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
             Style::default().fg(ACTIVE_GREEN),
         )
     } else {
-        Span::styled(
-            " Status:  ✗ No key set",
-            Style::default().fg(ERROR_COLOR),
-        )
+        Span::styled(" Status:  ✗ No key set", Style::default().fg(ERROR_COLOR))
     };
     frame.render_widget(Paragraph::new(status), rows[8]);
 
@@ -772,13 +774,19 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
-        Line::from(Span::styled("  Global", Style::default().fg(AMBER).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            "  Global",
+            Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+        )),
         hint_line("1 / 2", "Switch between Skills / Providers tab"),
         hint_line("Tab / Shift+Tab", "Cycle panel focus"),
         hint_line("q", "Quit"),
         hint_line("?", "Toggle this help"),
         Line::from(""),
-        Line::from(Span::styled("  Skills tab", Style::default().fg(AMBER).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            "  Skills tab",
+            Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+        )),
         hint_line("↑↓ / j k", "Navigate tool list"),
         hint_line("Space", "Toggle tool selection"),
         hint_line("/", "Jump to filter bar"),
@@ -790,7 +798,10 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
         hint_line("r", "Regenerate with same requirement"),
         hint_line("↑↓ (Output)", "Scroll generated output"),
         Line::from(""),
-        Line::from(Span::styled("  Providers tab", Style::default().fg(AMBER).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            "  Providers tab",
+            Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+        )),
         hint_line("↑↓", "Navigate provider list"),
         hint_line("Enter", "Activate provider + open config"),
         hint_line("Tab", "Switch between API key / model fields"),

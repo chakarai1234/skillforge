@@ -34,7 +34,7 @@ pub struct App {
     pub list_index: usize,
     pub list_state: ListState,
 
-    pub skill_name: String,        // user-specified name for the skill file
+    pub skill_name: String, // user-specified name for the skill file
     pub skill_name_cursor: usize,
     pub requirement: String,
     pub cursor_pos: usize,
@@ -65,7 +65,10 @@ impl App {
                 .iter()
                 .position(|p| p.id == saved_name.as_str())
                 .unwrap_or_else(|| {
-                    providers.iter().position(|p| p.is_configured()).unwrap_or(0)
+                    providers
+                        .iter()
+                        .position(|p| p.is_configured())
+                        .unwrap_or(0)
                 });
             // Restore saved model for the configured provider
             providers[idx].model = saved_model.clone();
@@ -144,18 +147,13 @@ impl App {
     ) -> Result<bool> {
         let in_text = matches!(
             self.focus,
-            Focus::RequirementInput
-                | Focus::SearchBar
-                | Focus::ApiKeyField
-                | Focus::SkillName
+            Focus::RequirementInput | Focus::SearchBar | Focus::ApiKeyField | Focus::SkillName
         );
 
         // ── Global shortcuts ────────────────────────────────────────────────
         match key.code {
             KeyCode::Char('q') if !in_text => return Ok(true),
-            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                return Ok(true)
-            }
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
             KeyCode::Char('?') if !in_text => {
                 self.show_help = !self.show_help;
                 return Ok(false);
@@ -241,15 +239,13 @@ impl App {
             (AppTab::Skills, Focus::SkillOutput) => Focus::ToolList,
             // Providers: List → ApiKey → Model → List
             (AppTab::Providers, Focus::ProviderList) => {
-                self.key_cursor =
-                    self.providers[self.editing_provider_idx].api_key.len();
+                self.key_cursor = self.providers[self.editing_provider_idx].api_key.len();
                 Focus::ApiKeyField
             }
             (AppTab::Providers, Focus::ApiKeyField) => {
                 // Trigger model fetch when moving to the model field
                 self.trigger_model_fetch(self.editing_provider_idx, models_tx);
-                self.model_cursor =
-                    self.providers[self.editing_provider_idx].model.len();
+                self.model_cursor = self.providers[self.editing_provider_idx].model.len();
                 Focus::ModelField
             }
             (AppTab::Providers, Focus::ModelField) => Focus::ProviderList,
@@ -442,8 +438,7 @@ impl App {
                 self.status_message = Some((format!("Activated: {}", name), false));
                 // Jump to API key config
                 self.focus = Focus::ApiKeyField;
-                self.key_cursor =
-                    self.providers[self.editing_provider_idx].api_key.len();
+                self.key_cursor = self.providers[self.editing_provider_idx].api_key.len();
             }
             _ => {}
         }
@@ -483,15 +478,13 @@ impl App {
             }
             KeyCode::Home => self.key_cursor = 0,
             KeyCode::End => {
-                self.key_cursor =
-                    self.providers[self.editing_provider_idx].api_key.len();
+                self.key_cursor = self.providers[self.editing_provider_idx].api_key.len();
             }
             KeyCode::Enter => {
                 self.active_provider_idx = self.editing_provider_idx;
                 self.rebuild_provider();
                 let name = self.providers[self.active_provider_idx].display;
-                self.status_message =
-                    Some((format!("Saved & activated: {}", name), false));
+                self.status_message = Some((format!("Saved & activated: {}", name), false));
             }
             _ => {}
         }
@@ -534,8 +527,7 @@ impl App {
                     self.active_provider_idx = self.editing_provider_idx;
                     self.rebuild_provider();
                     let name = self.providers[self.active_provider_idx].display;
-                    self.status_message =
-                        Some((format!("Saved & activated: {}", name), false));
+                    self.status_message = Some((format!("Saved & activated: {}", name), false));
                 }
                 _ => {}
             }
@@ -569,15 +561,13 @@ impl App {
                 }
                 KeyCode::Home => self.model_cursor = 0,
                 KeyCode::End => {
-                    self.model_cursor =
-                        self.providers[self.editing_provider_idx].model.len();
+                    self.model_cursor = self.providers[self.editing_provider_idx].model.len();
                 }
                 KeyCode::Enter => {
                     self.active_provider_idx = self.editing_provider_idx;
                     self.rebuild_provider();
                     let name = self.providers[self.active_provider_idx].display;
-                    self.status_message =
-                        Some((format!("Saved & activated: {}", name), false));
+                    self.status_message = Some((format!("Saved & activated: {}", name), false));
                 }
                 _ => {}
             }
@@ -644,7 +634,10 @@ impl App {
         let tx = ai_tx.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = provider.generate_skill(&tool_name, &requirement, tx.clone()).await {
+            if let Err(e) = provider
+                .generate_skill(&tool_name, &requirement, tx.clone())
+                .await
+            {
                 let _ = tx.send(StreamToken::Error(e.to_string())).await;
             }
         });
@@ -682,7 +675,9 @@ impl App {
         }
         // Prefer user-supplied skill name; fall back to tool name
         let file_key = if self.skill_name.trim().is_empty() {
-            self.current_tool.clone().unwrap_or_else(|| "skill".to_string())
+            self.current_tool
+                .clone()
+                .unwrap_or_else(|| "skill".to_string())
         } else {
             self.skill_name.trim().to_string()
         };
@@ -697,8 +692,7 @@ impl App {
                         }
                     }
                 }
-                self.status_message =
-                    Some((format!("Installed → {}", path.display()), false));
+                self.status_message = Some((format!("Installed → {}", path.display()), false));
             }
             Err(e) => {
                 self.status_message = Some((format!("Install failed: {}", e), true));
@@ -729,13 +723,17 @@ impl App {
     // ── Tool list helpers ─────────────────────────────────────────────────────
 
     fn move_list_up(&mut self) {
-        if self.filtered_indices.is_empty() { return; }
+        if self.filtered_indices.is_empty() {
+            return;
+        }
         self.list_index = self.list_index.saturating_sub(1);
         self.list_state.select(Some(self.list_index));
     }
 
     fn move_list_down(&mut self) {
-        if self.filtered_indices.is_empty() { return; }
+        if self.filtered_indices.is_empty() {
+            return;
+        }
         let max = self.filtered_indices.len() - 1;
         self.list_index = (self.list_index + 1).min(max);
         self.list_state.select(Some(self.list_index));
@@ -774,9 +772,24 @@ impl App {
 
 fn init_providers() -> Vec<ProviderEntry> {
     vec![
-        ProviderEntry::new("claude", "Claude (Anthropic)", "ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
+        ProviderEntry::new(
+            "claude",
+            "Claude (Anthropic)",
+            "ANTHROPIC_API_KEY",
+            "claude-sonnet-4-6",
+        ),
         ProviderEntry::new("openai", "OpenAI", "OPENAI_API_KEY", "gpt-4o"),
-        ProviderEntry::new("gemini", "Google Gemini", "GEMINI_API_KEY", "gemini-2.0-flash"),
-        ProviderEntry::new("openrouter", "OpenRouter", "OPENROUTER_API_KEY", "openai/gpt-4o"),
+        ProviderEntry::new(
+            "gemini",
+            "Google Gemini",
+            "GEMINI_API_KEY",
+            "gemini-2.0-flash",
+        ),
+        ProviderEntry::new(
+            "openrouter",
+            "OpenRouter",
+            "OPENROUTER_API_KEY",
+            "openai/gpt-4o",
+        ),
     ]
 }

@@ -4,8 +4,8 @@ use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-use crate::types::StreamToken;
 use super::AIProvider;
+use crate::types::StreamToken;
 
 // ── Model listing ─────────────────────────────────────────────────────────────
 // GET https://api.openai.com/v1/models
@@ -71,8 +71,7 @@ impl OpenAIProvider {
         Self {
             api_key,
             model,
-            base_url: base_url
-                .unwrap_or_else(|| "https://api.openai.com".to_string()),
+            base_url: base_url.unwrap_or_else(|| "https://api.openai.com".to_string()),
             client: reqwest::Client::new(),
         }
     }
@@ -129,10 +128,7 @@ impl AIProvider for OpenAIProvider {
                 },
                 OAIMessage {
                     role: "user".to_string(),
-                    content: format!(
-                        "Generate a skill for '{}' that: {}",
-                        tool_name, requirement
-                    ),
+                    content: format!("Generate a skill for '{}' that: {}", tool_name, requirement),
                 },
             ],
         };
@@ -193,16 +189,12 @@ impl AIProvider for OpenAIProvider {
                                 let _ = tx.send(StreamToken::Done).await;
                                 return Ok(());
                             }
-                            if let Ok(chunk) =
-                                serde_json::from_str::<OpenAIChunk>(data)
-                            {
+                            if let Ok(chunk) = serde_json::from_str::<OpenAIChunk>(data) {
                                 if let Some(choice) = chunk.choices.first() {
                                     if let Some(content) = &choice.delta.content {
                                         if !content.is_empty()
                                             && tx
-                                                .send(StreamToken::Token(
-                                                    content.clone(),
-                                                ))
+                                                .send(StreamToken::Token(content.clone()))
                                                 .await
                                                 .is_err()
                                         {

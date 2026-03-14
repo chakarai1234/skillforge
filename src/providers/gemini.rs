@@ -45,9 +45,7 @@ pub async fn fetch_models(api_key: &str) -> Vec<String> {
                         .filter(|m| {
                             m.supported_generation_methods
                                 .as_ref()
-                                .map(|methods| {
-                                    methods.iter().any(|m| m == "generateContent")
-                                })
+                                .map(|methods| methods.iter().any(|m| m == "generateContent"))
                                 .unwrap_or(false)
                         })
                         // Strip "models/" prefix to get the bare model id
@@ -65,8 +63,8 @@ pub async fn fetch_models(api_key: &str) -> Vec<String> {
     }
 }
 
-use crate::types::StreamToken;
 use super::AIProvider;
+use crate::types::StreamToken;
 
 pub struct GeminiProvider {
     api_key: String,
@@ -159,7 +157,9 @@ impl AIProvider for GeminiProvider {
         let body = GeminiRequest {
             system_instruction: GeminiMessageContent {
                 role: None,
-                parts: vec![GeminiPart { text: SYSTEM_PROMPT.to_string() }],
+                parts: vec![GeminiPart {
+                    text: SYSTEM_PROMPT.to_string(),
+                }],
             },
             contents: vec![GeminiMessageContent {
                 role: Some("user".to_string()),
@@ -193,9 +193,7 @@ impl AIProvider for GeminiProvider {
         if !response.status().is_success() {
             let msg = match response.status().as_u16() {
                 400 => "Bad request — verify your model name (e.g. gemini-2.0-flash)".to_string(),
-                401 | 403 => {
-                    "Invalid API key — check your GEMINI_API_KEY".to_string()
-                }
+                401 | 403 => "Invalid API key — check your GEMINI_API_KEY".to_string(),
                 429 => "Rate limited — please wait before retrying".to_string(),
                 s => format!("Gemini error (HTTP {})", s),
             };

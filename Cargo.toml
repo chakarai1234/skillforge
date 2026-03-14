@@ -2,7 +2,7 @@
 name = "skillforge"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.86.0"
+rust-version = "1.88.0"
 description = "AI-powered CLI skill generator with terminal UI"
 license = "MIT"
 

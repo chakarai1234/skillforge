@@ -34,7 +34,7 @@ pub enum Focus {
     // ── Skills tab ────────────────────────────────────────────
     ToolList,
     SearchBar,
-    SkillName,        // new: skill name input at top of right panel
+    SkillName, // new: skill name input at top of right panel
     RequirementInput,
     SkillOutput,
     // ── Providers tab ─────────────────────────────────────────

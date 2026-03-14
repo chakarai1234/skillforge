@@ -35,7 +35,10 @@ pub struct NoKeyProvider {
 
 impl NoKeyProvider {
     pub fn new(env_var: String, provider_name: String) -> Self {
-        Self { env_var, provider_name }
+        Self {
+            env_var,
+            provider_name,
+        }
     }
 }
 
@@ -70,11 +73,11 @@ impl AIProvider for NoKeyProvider {
 /// Each provider has its own API endpoint and response format.
 pub async fn fetch_provider_models(provider_id: &str, api_key: &str) -> Vec<String> {
     match provider_id {
-        "claude"      => claude::fetch_models(api_key).await,
-        "openai"      => openai::fetch_models(api_key).await,
-        "gemini"      => gemini::fetch_models(api_key).await,
-        "openrouter"  => openrouter::fetch_models(api_key).await,
-        _             => vec![],
+        "claude" => claude::fetch_models(api_key).await,
+        "openai" => openai::fetch_models(api_key).await,
+        "gemini" => gemini::fetch_models(api_key).await,
+        "openrouter" => openrouter::fetch_models(api_key).await,
+        _ => vec![],
     }
 }
 

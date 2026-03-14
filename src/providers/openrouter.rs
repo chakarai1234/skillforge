@@ -71,8 +71,8 @@ use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-use crate::types::StreamToken;
 use super::AIProvider;
+use crate::types::StreamToken;
 
 pub struct OpenRouterProvider {
     api_key: String,
@@ -147,10 +147,7 @@ impl AIProvider for OpenRouterProvider {
                 },
                 ChatMessage {
                     role: "user".to_string(),
-                    content: format!(
-                        "Generate a skill for '{}' that: {}",
-                        tool_name, requirement
-                    ),
+                    content: format!("Generate a skill for '{}' that: {}", tool_name, requirement),
                 },
             ],
         };

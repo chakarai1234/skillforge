@@ -4,8 +4,8 @@ use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-use crate::types::StreamToken;
 use super::AIProvider;
+use crate::types::StreamToken;
 
 // ── Model listing ─────────────────────────────────────────────────────────────
 // GET https://api.anthropic.com/v1/models
@@ -33,12 +33,11 @@ pub async fn fetch_models(api_key: &str) -> Vec<String> {
         .await;
 
     match resp {
-        Ok(r) if r.status().is_success() => {
-            r.json::<ModelsResponse>()
-                .await
-                .map(|m| m.data.into_iter().map(|e| e.id).collect())
-                .unwrap_or_default()
-        }
+        Ok(r) if r.status().is_success() => r
+            .json::<ModelsResponse>()
+            .await
+            .map(|m| m.data.into_iter().map(|e| e.id).collect())
+            .unwrap_or_default(),
         _ => vec![],
     }
 }
@@ -55,8 +54,7 @@ impl ClaudeProvider {
         Self {
             api_key,
             model,
-            base_url: base_url
-                .unwrap_or_else(|| "https://api.anthropic.com".to_string()),
+            base_url: base_url.unwrap_or_else(|| "https://api.anthropic.com".to_string()),
             client: reqwest::Client::new(),
         }
     }
@@ -181,15 +179,11 @@ impl AIProvider for ClaudeProvider {
                         buf = buf[pos + 1..].to_string();
 
                         if let Some(data) = line.strip_prefix("data: ") {
-                            if let Ok(event) =
-                                serde_json::from_str::<ClaudeEvent>(data)
-                            {
+                            if let Ok(event) = serde_json::from_str::<ClaudeEvent>(data) {
                                 match event.event_type.as_str() {
                                     "content_block_delta" => {
                                         if let Some(delta) = event.delta {
-                                            if delta.delta_type.as_deref()
-                                                == Some("text_delta")
-                                            {
+                                            if delta.delta_type.as_deref() == Some("text_delta") {
                                                 if let Some(text) = delta.text {
                                                     if tx
                                                         .send(StreamToken::Token(text))
@@ -208,9 +202,7 @@ impl AIProvider for ClaudeProvider {
                                     }
                                     "error" => {
                                         if let Some(err) = event.error {
-                                            let _ = tx
-                                                .send(StreamToken::Error(err.message))
-                                                .await;
+                                            let _ = tx.send(StreamToken::Error(err.message)).await;
                                         }
                                         return Ok(());
                                     }
