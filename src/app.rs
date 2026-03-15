@@ -6,7 +6,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::widgets::ListState;
 use tokio::sync::mpsc;
 
-use crate::config::{get_skills_dir, Config};
+use crate::config::Config;
 use crate::providers::{build_provider, fetch_provider_models, AIProvider};
 use crate::services::path_scanner::PathScanner;
 use crate::services::skill_store::SkillStore;
@@ -78,9 +78,8 @@ impl App {
         let provider: Arc<dyn AIProvider> =
             Arc::from(build_provider(&providers[active_provider_idx]));
 
-        let skills_dir = get_skills_dir();
-        let skill_store = SkillStore::new(skills_dir.clone())?;
-        let tools = PathScanner::new(skills_dir).scan().await;
+        let skill_store = SkillStore::new()?;
+        let tools = PathScanner::new().scan().await;
 
         let filtered_indices: Vec<usize> = (0..tools.len()).collect();
         let mut list_state = ListState::default();
@@ -673,16 +672,18 @@ impl App {
             self.status_message = Some(("Nothing to install.".to_string(), true));
             return;
         }
+        let tool = self
+            .current_tool
+            .clone()
+            .unwrap_or_else(|| "skill".to_string());
         // Prefer user-supplied skill name; fall back to tool name
-        let file_key = if self.skill_name.trim().is_empty() {
-            self.current_tool
-                .clone()
-                .unwrap_or_else(|| "skill".to_string())
+        let skill_name = if self.skill_name.trim().is_empty() {
+            tool.clone()
         } else {
             self.skill_name.trim().to_string()
         };
 
-        match self.skill_store.install(&file_key, &self.output) {
+        match self.skill_store.install(&tool, &skill_name, &self.output) {
             Ok(path) => {
                 // Mark has_skill on matching tool
                 if let Some(tool_name) = &self.current_tool {

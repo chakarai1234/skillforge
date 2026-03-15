@@ -6,6 +6,8 @@ pub struct ToolEntry {
     #[allow(dead_code)]
     pub path: PathBuf,
     pub has_skill: bool,
+    /// Full path where the default skill file lives (or would live).
+    pub skill_path: PathBuf,
 }
 
 #[derive(Debug, Clone)]

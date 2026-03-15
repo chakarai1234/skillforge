@@ -120,12 +120,6 @@ struct ChatDelta {
     content: Option<String>,
 }
 
-// ── System prompt ──────────────────────────────────────────────────────────────
-
-const SYSTEM_PROMPT: &str = "You are an expert at writing AI skill definitions for CLI tools. \
-A skill is a markdown document that teaches an AI assistant how to help with a specific CLI tool. \
-Include: 1. Brief description 2. Common workflows 3. Best practices and gotchas 4. Example prompts. \
-Output ONLY the markdown content.";
 
 // ── Provider implementation ────────────────────────────────────────────────────
 
@@ -143,11 +137,11 @@ impl AIProvider for OpenRouterProvider {
             messages: vec![
                 ChatMessage {
                     role: "system".to_string(),
-                    content: SYSTEM_PROMPT.to_string(),
+                    content: super::SKILL_SYSTEM_PROMPT.to_string(),
                 },
                 ChatMessage {
                     role: "user".to_string(),
-                    content: format!("Generate a skill for '{}' that: {}", tool_name, requirement),
+                    content: super::skill_user_message(tool_name, requirement),
                 },
             ],
         };

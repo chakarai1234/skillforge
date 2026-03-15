@@ -10,7 +10,6 @@ use ratatui::{
 };
 
 use crate::app::App;
-use crate::config::get_skills_dir;
 use crate::types::{AppState, AppTab, Focus};
 
 // ── Color palette ──────────────────────────────────────────────────────────────
@@ -151,17 +150,7 @@ fn render_skills_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 fn render_tool_list_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     let focused = matches!(app.focus, Focus::ToolList | Focus::SearchBar);
 
-    // Show skills folder path in the panel title
-    let skills_dir = get_skills_dir();
-    let skills_path = skills_dir
-        .to_str()
-        .unwrap_or("~/.skillforge/skills")
-        .replace(&std::env::var("HOME").unwrap_or_default(), "~");
-
-    let title = Line::from(vec![
-        Span::styled(" AI Coding Tools ", title_style()),
-        Span::styled(format!("  {}", skills_path), Style::default().fg(DIM_TEXT)),
-    ]);
+    let title = Line::from(vec![Span::styled(" AI Coding Tools ", title_style())]);
 
     let block = Block::default()
         .title(title)
@@ -205,6 +194,7 @@ fn render_search_bar(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_tool_list(frame: &mut Frame, area: Rect, app: &mut App) {
+    let home = std::env::var("HOME").unwrap_or_default();
     let items: Vec<ListItem> = app
         .filtered_indices
         .iter()
@@ -224,11 +214,21 @@ fn render_tool_list(frame: &mut Frame, area: Rect, app: &mut App) {
             } else {
                 Style::default().fg(BODY_TEXT)
             };
-            ListItem::new(Line::from(vec![
+            let path_str = tool
+                .skill_path
+                .to_str()
+                .unwrap_or("")
+                .replace(&home, "~");
+            let line1 = Line::from(vec![
                 Span::styled(format!("{} ", checkbox), Style::default().fg(DIM_TEXT)),
                 Span::styled(tool.name.clone(), name_style),
                 indicator,
-            ]))
+            ]);
+            let line2 = Line::from(vec![
+                Span::raw("    "),
+                Span::styled(path_str, Style::default().fg(DIM_TEXT)),
+            ]);
+            ListItem::new(ratatui::text::Text::from(vec![line1, line2]))
         })
         .collect();
 

@@ -1,42 +1,25 @@
 use anyhow::{Context, Result};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-pub struct SkillStore {
-    pub skills_dir: PathBuf,
-}
+use crate::config::get_tool_skill_path;
+
+pub struct SkillStore;
 
 impl SkillStore {
-    pub fn new(skills_dir: PathBuf) -> Result<Self> {
-        std::fs::create_dir_all(&skills_dir)
-            .with_context(|| format!("Failed to create skills dir: {}", skills_dir.display()))?;
-        Ok(Self { skills_dir })
+    pub fn new() -> Result<Self> {
+        Ok(Self)
     }
 
-    pub fn install(&self, tool: &str, content: &str) -> Result<PathBuf> {
-        let path = self.skill_path(tool);
+    /// Write skill content to `~/{tool_base}/skills/{skill_name}/SKILL.md`,
+    /// creating the directory hierarchy as needed.
+    pub fn install(&self, tool: &str, skill_name: &str, content: &str) -> Result<PathBuf> {
+        let path = get_tool_skill_path(tool, skill_name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create dir: {}", parent.display()))?;
+        }
         std::fs::write(&path, content)
             .with_context(|| format!("Failed to write skill: {}", path.display()))?;
         Ok(path)
-    }
-
-    #[allow(dead_code)]
-    pub fn exists(&self, tool: &str) -> bool {
-        self.skill_path(tool).exists()
-    }
-
-    #[allow(dead_code)]
-    pub fn load(&self, tool: &str) -> Result<String> {
-        let path = self.skill_path(tool);
-        std::fs::read_to_string(&path)
-            .with_context(|| format!("Failed to read skill: {}", path.display()))
-    }
-
-    fn skill_path(&self, tool: &str) -> PathBuf {
-        self.skills_dir.join(format!("{}.md", tool))
-    }
-
-    #[allow(dead_code)]
-    pub fn skills_dir(&self) -> &Path {
-        &self.skills_dir
     }
 }

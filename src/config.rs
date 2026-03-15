@@ -1,7 +1,7 @@
 // Config for SkillForge CLI
 //
 // Persisted at:  ~/.skillforge/config.toml
-// Skills dir:    ~/.skillforge/skills/
+// Skills dirs:   per-tool, e.g. ~/.claude/skills/<name>/SKILL.md
 //
 // NOTE: API keys are NEVER written to config — they come only from env vars.
 
@@ -11,7 +11,37 @@ use std::path::PathBuf;
 
 // ── Directory helpers ─────────────────────────────────────────────────────────
 
-/// Returns `~/.skillforge` on all platforms.
+fn home_dir() -> PathBuf {
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home)
+}
+
+/// Returns the base config directory for the given tool.
+/// e.g. `claude-code` → `~/.claude`, `codex` → `~/.codex`, etc.
+pub fn get_tool_base_dir(tool: &str) -> PathBuf {
+    let dir = match tool {
+        "claude-code" => ".claude",
+        "copilot-cli" => ".copilot",
+        "codex" => ".codex",
+        "gemini-cli" => ".gemini",
+        "opencode" => ".opencode",
+        _ => ".skillforge",
+    };
+    home_dir().join(dir)
+}
+
+/// Returns the full path where a skill file will live:
+/// `~/{tool_base}/skills/{skill_name}/SKILL.md`
+pub fn get_tool_skill_path(tool: &str, skill_name: &str) -> PathBuf {
+    get_tool_base_dir(tool)
+        .join("skills")
+        .join(skill_name)
+        .join("SKILL.md")
+}
+
+/// Returns `~/.skillforge` (used only for the config.toml location).
 pub fn get_config_dir() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
@@ -20,16 +50,8 @@ pub fn get_config_dir() -> PathBuf {
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".to_string());
-        PathBuf::from(home).join(".skillforge")
+        home_dir().join(".skillforge")
     }
-}
-
-/// Returns `~/.skillforge/skills/`
-pub fn get_skills_dir() -> PathBuf {
-    get_config_dir().join("skills")
 }
 
 pub fn config_file_path() -> PathBuf {

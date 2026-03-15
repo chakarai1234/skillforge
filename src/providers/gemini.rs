@@ -89,7 +89,19 @@ struct GeminiRequest {
     #[serde(rename = "systemInstruction")]
     system_instruction: GeminiMessageContent,
     contents: Vec<GeminiMessageContent>,
+    tools: Vec<GeminiTool>,
 }
+
+/// Gemini grounding tool — Google executes the search server-side and
+/// injects results directly into the model context. No client loop needed.
+#[derive(Serialize)]
+struct GeminiTool {
+    #[serde(rename = "googleSearch")]
+    google_search: GeminiGoogleSearch,
+}
+
+#[derive(Serialize)]
+struct GeminiGoogleSearch {}
 
 #[derive(Serialize)]
 struct GeminiMessageContent {
@@ -127,16 +139,6 @@ struct GeminiResponsePart {
     text: Option<String>,
 }
 
-// ── System prompt ──────────────────────────────────────────────────────────────
-
-const SYSTEM_PROMPT: &str = "You are an expert at writing AI skill definitions for CLI tools.\
-\nA skill is a markdown document that teaches an AI assistant how to help with a specific CLI tool.\
-\nInclude:\
-\n1. A brief description of the tool\
-\n2. Common workflows and commands\
-\n3. Best practices and gotchas\
-\n4. Example prompts that work well with the tool\
-\n\nOutput ONLY the markdown content. No preamble or explanation.";
 
 // ── Provider implementation ────────────────────────────────────────────────────
 
@@ -158,17 +160,17 @@ impl AIProvider for GeminiProvider {
             system_instruction: GeminiMessageContent {
                 role: None,
                 parts: vec![GeminiPart {
-                    text: SYSTEM_PROMPT.to_string(),
+                    text: super::SKILL_SYSTEM_PROMPT.to_string(),
                 }],
             },
             contents: vec![GeminiMessageContent {
                 role: Some("user".to_string()),
                 parts: vec![GeminiPart {
-                    text: format!(
-                        "Generate a skill for the tool '{}' that: {}",
-                        tool_name, requirement
-                    ),
+                    text: super::skill_user_message(tool_name, requirement),
                 }],
+            }],
+            tools: vec![GeminiTool {
+                google_search: GeminiGoogleSearch {},
             }],
         };
 

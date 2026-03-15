@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::config::get_tool_skill_path;
 use crate::types::ToolEntry;
 
 /// The five curated AI coding CLI tools SkillForge targets.
@@ -13,26 +14,25 @@ const CURATED_TOOLS: &[&str] = &[
     "copilot-cli",
 ];
 
-pub struct PathScanner {
-    skills_dir: PathBuf,
-}
+pub struct PathScanner;
 
 impl PathScanner {
-    pub fn new(skills_dir: PathBuf) -> Self {
-        Self { skills_dir }
+    pub fn new() -> Self {
+        Self
     }
 
     pub async fn scan(&self) -> Vec<ToolEntry> {
-        let skills_dir = self.skills_dir.clone();
         tokio::task::spawn_blocking(move || {
             CURATED_TOOLS
                 .iter()
                 .map(|&name| {
-                    let skill_path = skills_dir.join(format!("{}.md", name));
+                    // Default skill uses the tool name as the skill name.
+                    let skill_path = get_tool_skill_path(name, name);
                     ToolEntry {
                         name: name.to_string(),
                         path: PathBuf::from(name), // placeholder — not used for curated list
                         has_skill: skill_path.exists(),
+                        skill_path,
                     }
                 })
                 .collect()

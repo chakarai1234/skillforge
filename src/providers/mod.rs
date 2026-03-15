@@ -11,6 +11,52 @@ use tokio::sync::mpsc;
 
 use crate::types::{ProviderEntry, StreamToken};
 
+// ── Shared skill prompt ───────────────────────────────────────────────────────
+
+/// System prompt used by every provider when generating a SKILL.md.
+pub const SKILL_SYSTEM_PROMPT: &str = "\
+You are an expert at writing SKILL.md files for AI skill systems.\n\
+A SKILL.md is a markdown file with YAML frontmatter that instructs an AI on how to perform a specialised task.\n\
+Research the tool thoroughly using any available web search capabilities before writing.\n\n\
+Output ONLY the raw SKILL.md content — no preamble, no explanation, no code fences.";
+
+/// Build the user message that embeds the tool name, requirement, and the
+/// exact SKILL.md template the model must follow.
+pub fn skill_user_message(tool_name: &str, requirement: &str) -> String {
+    format!(
+        "Create a SKILL.md for: **{tool}**\n\
+Requirement: {req}\n\n\
+Follow this structure exactly:\n\n\
+---\n\
+name: <kebab-case-name>\n\
+description: >\n\
+  <When to trigger this skill — be specific and \"pushy\" so the AI uses it proactively.\n\
+  Include keywords, user phrases, and contexts. Also describe what it does.>\n\
+---\n\n\
+# <Skill Title>\n\n\
+## Overview\n\
+<What this skill does and why it exists>\n\n\
+## When to Use\n\
+<Explicit trigger conditions>\n\n\
+## Instructions\n\
+<Step-by-step instructions the AI should follow>\n\n\
+## Output Format\n\
+<Expected output structure>\n\n\
+## Examples\n\
+<1–2 concrete input/output examples>\n\n\
+## Edge Cases\n\
+<Known gotchas or failure modes>\n\n\
+Rules:\n\
+- Keep SKILL.md under 500 lines\n\
+- Put ALL triggering logic in the frontmatter description, not the body\n\
+- Be explicit about tools, dependencies, or APIs needed\n\
+- Use progressive disclosure: SKILL.md for overview, reference files for deep detail\n\
+- Make instructions deterministic — avoid ambiguity",
+        tool = tool_name,
+        req = requirement,
+    )
+}
+
 // ── Trait ─────────────────────────────────────────────────────────────────────
 
 #[async_trait]

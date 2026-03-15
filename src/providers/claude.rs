@@ -67,6 +67,17 @@ struct ClaudeRequest {
     stream: bool,
     system: String,
     messages: Vec<ClaudeMessage>,
+    tools: Vec<ClaudeTool>,
+}
+
+/// Anthropic built-in tool — Anthropic executes the search server-side,
+/// so no client-side tool_use loop is required. The `text_delta` stream
+/// events we already handle carry the grounded final response.
+#[derive(Serialize)]
+struct ClaudeTool {
+    #[serde(rename = "type")]
+    tool_type: &'static str,
+    name: &'static str,
 }
 
 #[derive(Serialize)]
@@ -95,14 +106,6 @@ struct ClaudeErrorBody {
     message: String,
 }
 
-const SYSTEM_PROMPT: &str = "You are an expert at writing AI skill definitions for CLI tools.\
-\nA skill is a markdown document that teaches an AI assistant how to help with a specific CLI tool.\
-\nIt must include:\
-\n1. A brief description of the tool\
-\n2. Common workflows and commands\
-\n3. Best practices and gotchas\
-\n4. Example prompts that work well with the tool\
-\n\nOutput ONLY the markdown content. No preamble, no explanation outside the markdown.";
 
 #[async_trait]
 impl AIProvider for ClaudeProvider {
@@ -114,15 +117,16 @@ impl AIProvider for ClaudeProvider {
     ) -> Result<()> {
         let body = ClaudeRequest {
             model: self.model.clone(),
-            max_tokens: 2048,
+            max_tokens: 4096,
             stream: true,
-            system: SYSTEM_PROMPT.to_string(),
+            system: super::SKILL_SYSTEM_PROMPT.to_string(),
             messages: vec![ClaudeMessage {
                 role: "user".to_string(),
-                content: format!(
-                    "Generate a skill for the tool '{}' that: {}",
-                    tool_name, requirement
-                ),
+                content: super::skill_user_message(tool_name, requirement),
+            }],
+            tools: vec![ClaudeTool {
+                tool_type: "web_search_20250305",
+                name: "web_search",
             }],
         };
 
@@ -131,6 +135,7 @@ impl AIProvider for ClaudeProvider {
             .post(format!("{}/v1/messages", self.base_url))
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
+            .header("anthropic-beta", "web-search-2025-03-05")
             .header("content-type", "application/json")
             .json(&body)
             .send()
