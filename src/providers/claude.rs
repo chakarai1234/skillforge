@@ -106,7 +106,6 @@ struct ClaudeErrorBody {
     message: String,
 }
 
-
 #[async_trait]
 impl AIProvider for ClaudeProvider {
     async fn generate_skill(

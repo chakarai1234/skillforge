@@ -139,7 +139,6 @@ struct GeminiResponsePart {
     text: Option<String>,
 }
 
-
 // ── Provider implementation ────────────────────────────────────────────────────
 
 #[async_trait]

@@ -214,11 +214,7 @@ fn render_tool_list(frame: &mut Frame, area: Rect, app: &mut App) {
             } else {
                 Style::default().fg(BODY_TEXT)
             };
-            let path_str = tool
-                .skill_path
-                .to_str()
-                .unwrap_or("")
-                .replace(&home, "~");
+            let path_str = tool.skill_path.to_str().unwrap_or("").replace(&home, "~");
             let line1 = Line::from(vec![
                 Span::styled(format!("{} ", checkbox), Style::default().fg(DIM_TEXT)),
                 Span::styled(tool.name.clone(), name_style),

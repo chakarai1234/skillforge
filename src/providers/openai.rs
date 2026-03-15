@@ -105,7 +105,6 @@ struct OAIDelta {
     content: Option<String>,
 }
 
-
 #[async_trait]
 impl AIProvider for OpenAIProvider {
     async fn generate_skill(

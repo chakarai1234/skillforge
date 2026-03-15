@@ -120,7 +120,6 @@ struct ChatDelta {
     content: Option<String>,
 }
 
-
 // ── Provider implementation ────────────────────────────────────────────────────
 
 #[async_trait]
