@@ -28,7 +28,7 @@ pub async fn fetch_models(api_key: &str) -> Vec<String> {
     let client = reqwest::Client::new();
     let resp = client
         .get("https://api.openai.com/v1/models")
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {api_key}"))
         .send()
         .await;
 
@@ -141,7 +141,7 @@ impl AIProvider for OpenAIProvider {
             Ok(r) => r,
             Err(e) => {
                 let _ = tx
-                    .send(StreamToken::Error(format!("Connection error: {}", e)))
+                    .send(StreamToken::Error(format!("Connection error: {e}")))
                     .await;
                 return Ok(());
             }
@@ -151,7 +151,7 @@ impl AIProvider for OpenAIProvider {
             let msg = match response.status().as_u16() {
                 401 => "Invalid API key — check your OPENAI_API_KEY".to_string(),
                 429 => "Rate limited — please wait before retrying".to_string(),
-                s => format!("Provider error (HTTP {})", s),
+                s => format!("Provider error (HTTP {s})"),
             };
             let _ = tx.send(StreamToken::Error(msg)).await;
             return Ok(());
@@ -165,7 +165,7 @@ impl AIProvider for OpenAIProvider {
                 Ok(c) => c,
                 Err(e) => {
                     let _ = tx
-                        .send(StreamToken::Error(format!("Stream error: {}", e)))
+                        .send(StreamToken::Error(format!("Stream error: {e}")))
                         .await;
                     return Ok(());
                 }

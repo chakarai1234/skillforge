@@ -144,7 +144,7 @@ impl AIProvider for ClaudeProvider {
             Ok(r) => r,
             Err(e) => {
                 let _ = tx
-                    .send(StreamToken::Error(format!("Connection error: {}", e)))
+                    .send(StreamToken::Error(format!("Connection error: {e}")))
                     .await;
                 return Ok(());
             }
@@ -154,7 +154,7 @@ impl AIProvider for ClaudeProvider {
             let msg = match response.status().as_u16() {
                 401 => "Invalid API key — check your ANTHROPIC_API_KEY".to_string(),
                 429 => "Rate limited — please wait before retrying".to_string(),
-                s => format!("Provider error (HTTP {})", s),
+                s => format!("Provider error (HTTP {s})"),
             };
             let _ = tx.send(StreamToken::Error(msg)).await;
             return Ok(());
@@ -168,7 +168,7 @@ impl AIProvider for ClaudeProvider {
                 Ok(c) => c,
                 Err(e) => {
                     let _ = tx
-                        .send(StreamToken::Error(format!("Stream error: {}", e)))
+                        .send(StreamToken::Error(format!("Stream error: {e}")))
                         .await;
                     return Ok(());
                 }

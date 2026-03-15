@@ -105,7 +105,7 @@ fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
     let make_tab = |label: &str, active: bool| {
         if active {
             Span::styled(
-                format!("  {}  ", label),
+                format!("  {label}  "),
                 Style::default()
                     .fg(Color::Black)
                     .bg(GOLD)
@@ -113,7 +113,7 @@ fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
             )
         } else {
             Span::styled(
-                format!("  {}  ", label),
+                format!("  {label}  "),
                 Style::default().fg(DIM_TEXT).bg(Color::Rgb(28, 28, 28)),
             )
         }
@@ -216,7 +216,7 @@ fn render_tool_list(frame: &mut Frame, area: Rect, app: &mut App) {
             };
             let path_str = tool.skill_path.to_str().unwrap_or("").replace(&home, "~");
             let line1 = Line::from(vec![
-                Span::styled(format!("{} ", checkbox), Style::default().fg(DIM_TEXT)),
+                Span::styled(format!("{checkbox} "), Style::default().fg(DIM_TEXT)),
                 Span::styled(tool.name.clone(), name_style),
                 indicator,
             ]);
@@ -245,7 +245,7 @@ fn render_generate_button(frame: &mut Frame, area: Rect, app: &App) {
     let label = if count == 0 {
         "  [Enter] Generate Skill".to_string()
     } else {
-        format!("  [Enter] Generate {} Skill(s)", count)
+        format!("  [Enter] Generate {count} Skill(s)")
     };
     let btn = Paragraph::new(Span::styled(
         label,
@@ -319,7 +319,7 @@ fn render_requirement_input(frame: &mut Frame, area: Rect, app: &App) {
     let tool_label = app
         .current_tool
         .as_deref()
-        .map(|t| format!(" Requirement — {} ", t))
+        .map(|t| format!(" Requirement — {t} "))
         .unwrap_or_else(|| " Requirement ".to_string());
 
     let display = if app.requirement.is_empty() && !focused {
@@ -358,7 +358,7 @@ fn render_skill_output(frame: &mut Frame, area: Rect, app: &mut App) {
         AppState::Error(_) => " [r]Retry",
         AppState::Idle => "",
     };
-    let title = format!(" Generated Skill Output{} ", action_hint);
+    let title = format!(" Generated Skill Output{action_hint} ");
 
     let (content, style) = match &app.state {
         AppState::Error(msg) => (msg.clone(), Style::default().fg(ERROR_COLOR)),
@@ -459,7 +459,7 @@ fn render_provider_list(frame: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(GREY)
             };
             ListItem::new(Line::from(vec![
-                Span::styled(format!(" {} ", radio), radio_style),
+                Span::styled(format!(" {radio} "), radio_style),
                 Span::styled(p.display, name_style),
                 key_status,
             ]))
@@ -562,7 +562,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
     };
 
     let key_widget = Paragraph::new(Span::styled(
-        format!(" {}", key_display),
+        format!(" {key_display}"),
         Style::default().fg(if key_focused {
             BRIGHT_YELLOW
         } else {
@@ -578,11 +578,7 @@ fn render_provider_config(frame: &mut Frame, area: Rect, app: &App) {
 
     if key_focused {
         // Cursor position: 1 (border+space) + cursor_pos
-        let display_cursor = if entry.show_key {
-            app.key_cursor
-        } else {
-            app.key_cursor // same position, just masked characters
-        };
+        let display_cursor = app.key_cursor;
         let cx = rows[2].x + 2 + display_cursor as u16;
         frame.set_cursor_position((cx.min(rows[2].x + rows[2].width - 2), rows[2].y + 1));
     }
@@ -749,8 +745,7 @@ fn render_status_toast(frame: &mut Frame, area: Rect, msg: &str, is_error: bool)
     };
     let prefix = if is_error { "✗ " } else { "✓ " };
     frame.render_widget(
-        Paragraph::new(Span::styled(format!("{}{}", prefix, msg), style))
-            .alignment(Alignment::Center),
+        Paragraph::new(Span::styled(format!("{prefix}{msg}"), style)).alignment(Alignment::Center),
         toast_area,
     );
 }
@@ -826,7 +821,7 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
 
 fn hint_line<'a>(key: &'a str, desc: &'a str) -> Line<'a> {
     Line::from(vec![
-        Span::styled(format!("  {:<16}", key), Style::default().fg(BRIGHT_YELLOW)),
+        Span::styled(format!("  {key:<16}"), Style::default().fg(BRIGHT_YELLOW)),
         Span::styled(desc, Style::default().fg(BODY_TEXT)),
     ])
 }

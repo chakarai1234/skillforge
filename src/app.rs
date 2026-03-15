@@ -434,7 +434,7 @@ impl App {
                 self.active_provider_idx = self.editing_provider_idx;
                 self.rebuild_provider();
                 let name = self.providers[self.active_provider_idx].display;
-                self.status_message = Some((format!("Activated: {}", name), false));
+                self.status_message = Some((format!("Activated: {name}"), false));
                 // Jump to API key config
                 self.focus = Focus::ApiKeyField;
                 self.key_cursor = self.providers[self.editing_provider_idx].api_key.len();
@@ -483,7 +483,7 @@ impl App {
                 self.active_provider_idx = self.editing_provider_idx;
                 self.rebuild_provider();
                 let name = self.providers[self.active_provider_idx].display;
-                self.status_message = Some((format!("Saved & activated: {}", name), false));
+                self.status_message = Some((format!("Saved & activated: {name}"), false));
             }
             _ => {}
         }
@@ -526,7 +526,7 @@ impl App {
                     self.active_provider_idx = self.editing_provider_idx;
                     self.rebuild_provider();
                     let name = self.providers[self.active_provider_idx].display;
-                    self.status_message = Some((format!("Saved & activated: {}", name), false));
+                    self.status_message = Some((format!("Saved & activated: {name}"), false));
                 }
                 _ => {}
             }
@@ -566,7 +566,7 @@ impl App {
                     self.active_provider_idx = self.editing_provider_idx;
                     self.rebuild_provider();
                     let name = self.providers[self.active_provider_idx].display;
-                    self.status_message = Some((format!("Saved & activated: {}", name), false));
+                    self.status_message = Some((format!("Saved & activated: {name}"), false));
                 }
                 _ => {}
             }
@@ -660,7 +660,7 @@ impl App {
             StreamToken::Error(err) => {
                 self.state = AppState::Error(err.clone());
                 self.output = err.clone();
-                self.status_message = Some((format!("Error: {}", err), true));
+                self.status_message = Some((format!("Error: {err}"), true));
             }
         }
     }
@@ -696,7 +696,7 @@ impl App {
                 self.status_message = Some((format!("Installed → {}", path.display()), false));
             }
             Err(e) => {
-                self.status_message = Some((format!("Install failed: {}", e), true));
+                self.status_message = Some((format!("Install failed: {e}"), true));
             }
         }
     }
@@ -712,11 +712,11 @@ impl App {
                     self.status_message = Some(("Copied to clipboard!".to_string(), false));
                 }
                 Err(e) => {
-                    self.status_message = Some((format!("Copy failed: {}", e), true));
+                    self.status_message = Some((format!("Copy failed: {e}"), true));
                 }
             },
             Err(e) => {
-                self.status_message = Some((format!("Clipboard: {}", e), true));
+                self.status_message = Some((format!("Clipboard: {e}"), true));
             }
         }
     }

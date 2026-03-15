@@ -24,8 +24,8 @@ Output ONLY the raw SKILL.md content — no preamble, no explanation, no code fe
 /// exact SKILL.md template the model must follow.
 pub fn skill_user_message(tool_name: &str, requirement: &str) -> String {
     format!(
-        "Create a SKILL.md for: **{tool}**\n\
-Requirement: {req}\n\n\
+        "Create a SKILL.md for: **{tool_name}**\n\
+Requirement: {requirement}\n\n\
 Follow this structure exactly:\n\n\
 ---\n\
 name: <kebab-case-name>\n\
@@ -51,9 +51,7 @@ Rules:\n\
 - Put ALL triggering logic in the frontmatter description, not the body\n\
 - Be explicit about tools, dependencies, or APIs needed\n\
 - Use progressive disclosure: SKILL.md for overview, reference files for deep detail\n\
-- Make instructions deterministic — avoid ambiguity",
-        tool = tool_name,
-        req = requirement,
+- Make instructions deterministic — avoid ambiguity"
     )
 }
 
@@ -159,7 +157,7 @@ pub fn build_provider(entry: &ProviderEntry) -> Box<dyn AIProvider> {
         )),
         id => Box::new(NoKeyProvider::new(
             entry.env_var.to_string(),
-            format!("Unknown provider '{}'", id),
+            format!("Unknown provider '{id}'"),
         )),
     }
 }

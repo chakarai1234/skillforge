@@ -27,10 +27,7 @@ struct GeminiModelEntry {
 /// Fetch available Gemini models that support content generation.
 pub async fn fetch_models(api_key: &str) -> Vec<String> {
     let client = reqwest::Client::new();
-    let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models?key={}",
-        api_key
-    );
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models?key={api_key}");
     let resp = client.get(&url).send().await;
 
     match resp {
@@ -185,7 +182,7 @@ impl AIProvider for GeminiProvider {
             Ok(r) => r,
             Err(e) => {
                 let _ = tx
-                    .send(StreamToken::Error(format!("Connection error: {}", e)))
+                    .send(StreamToken::Error(format!("Connection error: {e}")))
                     .await;
                 return Ok(());
             }
@@ -196,7 +193,7 @@ impl AIProvider for GeminiProvider {
                 400 => "Bad request — verify your model name (e.g. gemini-2.0-flash)".to_string(),
                 401 | 403 => "Invalid API key — check your GEMINI_API_KEY".to_string(),
                 429 => "Rate limited — please wait before retrying".to_string(),
-                s => format!("Gemini error (HTTP {})", s),
+                s => format!("Gemini error (HTTP {s})"),
             };
             let _ = tx.send(StreamToken::Error(msg)).await;
             return Ok(());
@@ -210,7 +207,7 @@ impl AIProvider for GeminiProvider {
                 Ok(c) => c,
                 Err(e) => {
                     let _ = tx
-                        .send(StreamToken::Error(format!("Stream error: {}", e)))
+                        .send(StreamToken::Error(format!("Stream error: {e}")))
                         .await;
                     return Ok(());
                 }

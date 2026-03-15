@@ -103,7 +103,7 @@ impl ProviderEntry {
         } else {
             let visible: String = self.api_key.chars().take(4).collect();
             let masked = "*".repeat(self.api_key.len().saturating_sub(4).min(20));
-            format!("{}{}", visible, masked)
+            format!("{visible}{masked}")
         }
     }
 

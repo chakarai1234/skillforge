@@ -34,7 +34,7 @@ pub async fn fetch_models(api_key: &str) -> Vec<String> {
     let client = reqwest::Client::new();
     let resp = client
         .get("https://openrouter.ai/api/v1/models")
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {api_key}"))
         .send()
         .await;
 
@@ -161,7 +161,7 @@ impl AIProvider for OpenRouterProvider {
             Ok(r) => r,
             Err(e) => {
                 let _ = tx
-                    .send(StreamToken::Error(format!("Connection error: {}", e)))
+                    .send(StreamToken::Error(format!("Connection error: {e}")))
                     .await;
                 return Ok(());
             }
@@ -172,7 +172,7 @@ impl AIProvider for OpenRouterProvider {
                 401 => "Invalid API key — check your OPENROUTER_API_KEY".to_string(),
                 402 => "Insufficient credits — top up your OpenRouter account".to_string(),
                 429 => "Rate limited — please wait before retrying".to_string(),
-                s => format!("OpenRouter error (HTTP {})", s),
+                s => format!("OpenRouter error (HTTP {s})"),
             };
             let _ = tx.send(StreamToken::Error(msg)).await;
             return Ok(());
@@ -186,7 +186,7 @@ impl AIProvider for OpenRouterProvider {
                 Ok(c) => c,
                 Err(e) => {
                     let _ = tx
-                        .send(StreamToken::Error(format!("Stream error: {}", e)))
+                        .send(StreamToken::Error(format!("Stream error: {e}")))
                         .await;
                     return Ok(());
                 }

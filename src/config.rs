@@ -60,7 +60,7 @@ pub fn config_file_path() -> PathBuf {
 
 // ── Config struct (only non-secret preferences) ───────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Config {
     #[serde(default)]
     pub provider: ProviderPref,
@@ -72,14 +72,6 @@ pub struct ProviderPref {
     pub name: String,
     /// Model identifier chosen by the user
     pub model: String,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            provider: ProviderPref::default(),
-        }
-    }
 }
 
 impl Default for ProviderPref {

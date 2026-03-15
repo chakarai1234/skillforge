@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(ref e) = result {
-        eprintln!("skillforge error: {}", e);
+        eprintln!("skillforge error: {e}");
     }
     result
 }
@@ -94,10 +94,10 @@ async fn run_app(
                 match maybe_event {
                     Some(Ok(Event::Key(key))) => {
                         // Ignore key-release events (Windows fires both press & release)
-                        if key.kind == KeyEventKind::Press {
-                            if app.handle_key(key, &ai_tx, &models_tx).await? {
-                                break;
-                            }
+                        if key.kind == KeyEventKind::Press
+                            && app.handle_key(key, &ai_tx, &models_tx).await?
+                        {
+                            break;
                         }
                     }
                     Some(Ok(Event::Resize(_, _))) => {
@@ -115,12 +115,9 @@ async fn run_app(
 
             // AI stream tokens coming from a background task
             maybe_token = ai_rx.recv() => {
-                match maybe_token {
-                    Some(token) => {
-                        app.handle_stream_token(token);
-                        terminal.draw(|f| ui::render(f, &mut app))?;
-                    }
-                    None => {}
+                if let Some(token) = maybe_token {
+                    app.handle_stream_token(token);
+                    terminal.draw(|f| ui::render(f, &mut app))?;
                 }
             }
 
