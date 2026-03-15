@@ -90,11 +90,6 @@ jobs:
             artifact_name: skillforge-macos-arm64
             use_cross: false
 
-          # Windows x86_64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: skillforge-windows-x86_64
-            use_cross: false
 
     steps:
       - uses: actions/checkout@v4
@@ -129,8 +124,7 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       # ── Package (Unix) ─────────────────────────────────────────────────────────
-      - name: Package binary (Unix)
-        if: runner.os != 'Windows'
+      - name: Package binary
         run: |
           BIN=target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
           OUT=${{ matrix.artifact_name }}
@@ -143,17 +137,6 @@ jobs:
           fi
           echo "artifact=$OUT" >> "$GITHUB_OUTPUT"
 
-      # ── Package (Windows) ──────────────────────────────────────────────────────
-      - name: Package binary (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $bin = "target\${{ matrix.target }}\release\${{ env.BINARY_NAME }}.exe"
-          $out = "${{ matrix.artifact_name }}.exe"
-          Copy-Item $bin $out
-          $hash = (Get-FileHash $out -Algorithm SHA256).Hash.ToLower()
-          "$hash  $out" | Set-Content "$out.sha256"
-
       # ── Upload artifacts ───────────────────────────────────────────────────────
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -161,10 +144,8 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: |
             ${{ matrix.artifact_name }}
-            ${{ matrix.artifact_name }}.exe
             ${{ matrix.artifact_name }}.sha256
-            ${{ matrix.artifact_name }}.exe.sha256
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 1
 
   # ── Create GitHub Release ─────────────────────────────────────────────────────
@@ -227,9 +208,6 @@ jobs:
             curl -Lo skillforge https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.VERSION }}/skillforge-linux-arm64
             chmod +x skillforge && sudo mv skillforge /usr/local/bin/
             ```
-
-            ### Windows
-            Download `skillforge-windows-x86_64.exe` and add it to your PATH.
 
             ---
             > Set your AI API key as an environment variable before running:
