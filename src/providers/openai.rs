@@ -110,6 +110,7 @@ impl AIProvider for OpenAIProvider {
     async fn generate_skill(
         &self,
         tool_name: &str,
+        skill_name: &str,
         requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()> {
@@ -123,7 +124,7 @@ impl AIProvider for OpenAIProvider {
                 },
                 OAIMessage {
                     role: "user".to_string(),
-                    content: super::skill_user_message(tool_name, requirement),
+                    content: super::skill_user_message(tool_name, skill_name, requirement),
                 },
             ],
         };

@@ -87,22 +87,28 @@ async fn run_app(
     // Initial render
     terminal.draw(|f| ui::render(f, &mut app))?;
 
+    // Persistent timer so it isn't reset by each incoming event
+    let status_clear = tokio::time::sleep(Duration::from_secs(3));
+    tokio::pin!(status_clear);
+
     loop {
         tokio::select! {
-            // Keyboard / terminal events
+            // `biased` makes select! check branches in order instead of randomly.
+            // Keyboard events are always checked first so they are never starved
+            // by a flood of AI stream tokens.
+            biased;
+
+            // ── Keyboard / terminal events (highest priority) ───────────────
             maybe_event = event_stream.next() => {
                 match maybe_event {
                     Some(Ok(Event::Key(key))) => {
-                        // Ignore key-release events (Windows fires both press & release)
                         if key.kind == KeyEventKind::Press
                             && app.handle_key(key, &ai_tx, &models_tx).await?
                         {
                             break;
                         }
                     }
-                    Some(Ok(Event::Resize(_, _))) => {
-                        // Just re-render on resize — ratatui recalculates layout
-                    }
+                    Some(Ok(Event::Resize(_, _))) => {}
                     Some(Err(e)) => {
                         tracing::error!("Terminal event error: {}", e);
                         break;
@@ -113,15 +119,20 @@ async fn run_app(
                 terminal.draw(|f| ui::render(f, &mut app))?;
             }
 
-            // AI stream tokens coming from a background task
+            // ── AI stream tokens ────────────────────────────────────────────
             maybe_token = ai_rx.recv() => {
                 if let Some(token) = maybe_token {
                     app.handle_stream_token(token);
+                    // Drain every token that is already queued so we do a single
+                    // draw for the whole batch instead of one draw per token.
+                    while let Ok(token) = ai_rx.try_recv() {
+                        app.handle_stream_token(token);
+                    }
                     terminal.draw(|f| ui::render(f, &mut app))?;
                 }
             }
 
-            // Model list results from provider API fetch
+            // ── Model list results ──────────────────────────────────────────
             maybe_models = models_rx.recv() => {
                 if let Some((provider_id, models)) = maybe_models {
                     app.handle_models_loaded(provider_id, models);
@@ -129,14 +140,18 @@ async fn run_app(
                 }
             }
 
-            // Periodic tick: clear transient success status messages after ~3 s
-            _ = tokio::time::sleep(Duration::from_secs(3)) => {
+            // ── Periodic tick: clear transient status messages after 3 s ───
+            _ = &mut status_clear => {
                 if let Some((_, false)) = &app.status_message {
                     if !matches!(app.state, types::AppState::Generating) {
                         app.status_message = None;
                         terminal.draw(|f| ui::render(f, &mut app))?;
                     }
                 }
+                // Reset the timer for the next cycle
+                status_clear.as_mut().reset(
+                    tokio::time::Instant::now() + Duration::from_secs(3)
+                );
             }
         }
     }

@@ -41,6 +41,7 @@ pub struct App {
     pub output: String,
     pub output_scroll: u16,
     pub current_tool: Option<String>,
+    pub current_skill_name: String, // effective name used for the active generation
 
     // ── Providers tab ────────────────────────────────────────────────────────
     pub providers: Vec<ProviderEntry>,
@@ -112,6 +113,7 @@ impl App {
             output: String::new(),
             output_scroll: 0,
             current_tool: None,
+            current_skill_name: String::new(),
 
             providers,
             active_provider_idx,
@@ -630,11 +632,17 @@ impl App {
 
         let provider = Arc::clone(&self.provider);
         let requirement = self.requirement.clone();
+        let skill_name = if self.skill_name.trim().is_empty() {
+            tool_name.clone()
+        } else {
+            self.skill_name.trim().to_string()
+        };
+        self.current_skill_name = skill_name.clone();
         let tx = ai_tx.clone();
 
         tokio::spawn(async move {
             if let Err(e) = provider
-                .generate_skill(&tool_name, &requirement, tx.clone())
+                .generate_skill(&tool_name, &skill_name, &requirement, tx.clone())
                 .await
             {
                 let _ = tx.send(StreamToken::Error(e.to_string())).await;
@@ -653,7 +661,12 @@ impl App {
             }
             StreamToken::Done => {
                 self.state = AppState::Ready;
-                self.output_scroll = 0;
+                // Trim trailing whitespace and fix the name: field so the output
+                // panel shows the correct skill name immediately (before install).
+                self.output = fix_frontmatter_name(
+                    self.output.trim_end(),
+                    &self.current_skill_name.clone(),
+                );
                 self.status_message =
                     Some(("[i] Install   [c] Copy   [r] Regenerate".to_string(), false));
             }
@@ -672,32 +685,60 @@ impl App {
             self.status_message = Some(("Nothing to install.".to_string(), true));
             return;
         }
-        let tool = self
-            .current_tool
-            .clone()
-            .unwrap_or_else(|| "skill".to_string());
-        // Prefer user-supplied skill name; fall back to tool name
+
+        // Prefer user-supplied skill name; fall back to the current tool name
         let skill_name = if self.skill_name.trim().is_empty() {
-            tool.clone()
+            self.current_tool
+                .clone()
+                .unwrap_or_else(|| "skill".to_string())
         } else {
             self.skill_name.trim().to_string()
         };
 
-        match self.skill_store.install(&tool, &skill_name, &self.output) {
-            Ok(path) => {
-                // Mark has_skill on matching tool
-                if let Some(tool_name) = &self.current_tool {
+        // Install to all selected tools (if any), otherwise fall back to current_tool
+        let targets: Vec<String> = if !self.selected_tools.is_empty() {
+            let mut v: Vec<String> = self.selected_tools.iter().cloned().collect();
+            v.sort();
+            v
+        } else {
+            vec![self
+                .current_tool
+                .clone()
+                .unwrap_or_else(|| "skill".to_string())]
+        };
+
+        let mut last_path = String::new();
+        let mut errors: Vec<String> = Vec::new();
+
+        // Ensure the frontmatter name: field matches the chosen skill name
+        let content = fix_frontmatter_name(&self.output, &skill_name);
+
+        for tool in &targets {
+            match self.skill_store.install(tool, &skill_name, &content) {
+                Ok(path) => {
+                    // Mark has_skill on the matching tool entry
                     for entry in &mut self.tools {
-                        if &entry.name == tool_name {
+                        if &entry.name == tool {
                             entry.has_skill = true;
                         }
                     }
+                    last_path = path.display().to_string();
                 }
-                self.status_message = Some((format!("Installed → {}", path.display()), false));
+                Err(e) => {
+                    errors.push(format!("{tool}: {e}"));
+                }
             }
-            Err(e) => {
-                self.status_message = Some((format!("Install failed: {e}"), true));
-            }
+        }
+
+        if errors.is_empty() {
+            let msg = if targets.len() == 1 {
+                format!("Installed → {last_path}")
+            } else {
+                format!("Installed to {} tools → {last_path}", targets.len())
+            };
+            self.status_message = Some((msg, false));
+        } else {
+            self.status_message = Some((format!("Install failed: {}", errors.join(", ")), true));
         }
     }
 
@@ -767,6 +808,35 @@ impl App {
             self.list_state.select(None);
         }
     }
+}
+
+// ── Post-processing helpers ───────────────────────────────────────────────────
+
+/// Replace the `name:` field in YAML frontmatter with `skill_name`.
+/// Guarantees the installed file's name matches the folder/skill name the
+/// user chose, regardless of what the AI generated.
+fn fix_frontmatter_name(content: &str, skill_name: &str) -> String {
+    let mut in_frontmatter = false;
+    let mut frontmatter_closed = false;
+    content
+        .lines()
+        .enumerate()
+        .map(|(i, line)| {
+            if i == 0 && line.trim() == "---" {
+                in_frontmatter = true;
+                line.to_string()
+            } else if in_frontmatter && !frontmatter_closed && line.trim() == "---" {
+                frontmatter_closed = true;
+                in_frontmatter = false;
+                line.to_string()
+            } else if in_frontmatter && line.starts_with("name:") {
+                format!("name: {skill_name}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 // ── Provider initialisation ───────────────────────────────────────────────────

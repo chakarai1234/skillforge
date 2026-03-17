@@ -390,8 +390,11 @@ fn render_skill_output(frame: &mut Frame, area: Rect, app: &mut App) {
         let line_count = app.output.lines().count();
         let visible = area.height.saturating_sub(2) as usize;
         if line_count > visible {
+            let scrollable = line_count.saturating_sub(visible);
+            // Clamp scroll so it never exceeds the actual scrollable range
+            app.output_scroll = app.output_scroll.min(scrollable as u16);
             let sb = Scrollbar::new(ScrollbarOrientation::VerticalRight);
-            let mut sb_state = ScrollbarState::new(line_count).position(app.output_scroll as usize);
+            let mut sb_state = ScrollbarState::new(scrollable).position(app.output_scroll as usize);
             frame.render_stateful_widget(
                 sb,
                 area.inner(Margin {

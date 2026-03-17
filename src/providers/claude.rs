@@ -111,6 +111,7 @@ impl AIProvider for ClaudeProvider {
     async fn generate_skill(
         &self,
         tool_name: &str,
+        skill_name: &str,
         requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()> {
@@ -121,7 +122,7 @@ impl AIProvider for ClaudeProvider {
             system: super::SKILL_SYSTEM_PROMPT.to_string(),
             messages: vec![ClaudeMessage {
                 role: "user".to_string(),
-                content: super::skill_user_message(tool_name, requirement),
+                content: super::skill_user_message(tool_name, skill_name, requirement),
             }],
             tools: vec![ClaudeTool {
                 tool_type: "web_search_20250305",

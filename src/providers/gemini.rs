@@ -143,6 +143,7 @@ impl AIProvider for GeminiProvider {
     async fn generate_skill(
         &self,
         tool_name: &str,
+        skill_name: &str,
         requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()> {
@@ -162,7 +163,7 @@ impl AIProvider for GeminiProvider {
             contents: vec![GeminiMessageContent {
                 role: Some("user".to_string()),
                 parts: vec![GeminiPart {
-                    text: super::skill_user_message(tool_name, requirement),
+                    text: super::skill_user_message(tool_name, skill_name, requirement),
                 }],
             }],
             tools: vec![GeminiTool {

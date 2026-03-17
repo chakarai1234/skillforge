@@ -22,13 +22,13 @@ Output ONLY the raw SKILL.md content — no preamble, no explanation, no code fe
 
 /// Build the user message that embeds the tool name, requirement, and the
 /// exact SKILL.md template the model must follow.
-pub fn skill_user_message(tool_name: &str, requirement: &str) -> String {
+pub fn skill_user_message(tool_name: &str, skill_name: &str, requirement: &str) -> String {
     format!(
         "Create a SKILL.md for: **{tool_name}**\n\
 Requirement: {requirement}\n\n\
 Follow this structure exactly:\n\n\
 ---\n\
-name: <kebab-case-name>\n\
+name: {skill_name}\n\
 description: >\n\
   <When to trigger this skill — be specific and \"pushy\" so the AI uses it proactively.\n\
   Include keywords, user phrases, and contexts. Also describe what it does.>\n\
@@ -62,6 +62,7 @@ pub trait AIProvider: Send + Sync {
     async fn generate_skill(
         &self,
         tool_name: &str,
+        skill_name: &str,
         requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()>;
@@ -91,6 +92,7 @@ impl AIProvider for NoKeyProvider {
     async fn generate_skill(
         &self,
         _tool_name: &str,
+        _skill_name: &str,
         _requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()> {
