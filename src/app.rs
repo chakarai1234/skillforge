@@ -663,10 +663,8 @@ impl App {
                 self.state = AppState::Ready;
                 // Trim trailing whitespace and fix the name: field so the output
                 // panel shows the correct skill name immediately (before install).
-                self.output = fix_frontmatter_name(
-                    self.output.trim_end(),
-                    &self.current_skill_name.clone(),
-                );
+                self.output =
+                    fix_frontmatter_name(self.output.trim_end(), &self.current_skill_name.clone());
                 self.status_message =
                     Some(("[i] Install   [c] Copy   [r] Regenerate".to_string(), false));
             }
