@@ -837,6 +837,287 @@ fn fix_frontmatter_name(content: &str, skill_name: &str) -> String {
         .join("\n")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn tmp_cfg(suffix: &str) -> Option<PathBuf> {
+        Some(std::env::temp_dir().join(format!("skillforge_app_test_{suffix}.toml")))
+    }
+
+    // ── fix_frontmatter_name ──────────────────────────────────────────────────
+
+    #[test]
+    fn fix_frontmatter_name_replaces_name_field() {
+        let input = "---\nname: old-name\ndescription: test\n---\n# Body";
+        let result = fix_frontmatter_name(input, "new-name");
+        assert!(result.contains("name: new-name"));
+        assert!(!result.contains("name: old-name"));
+    }
+
+    #[test]
+    fn fix_frontmatter_name_preserves_other_fields() {
+        let input = "---\nname: old\ndescription: keep this\n---\n# Body";
+        let result = fix_frontmatter_name(input, "updated");
+        assert!(result.contains("description: keep this"));
+        assert!(result.contains("# Body"));
+        assert!(result.contains("name: updated"));
+    }
+
+    #[test]
+    fn fix_frontmatter_name_preserves_body_after_frontmatter() {
+        let input = "---\nname: old\n---\n# Title\n\nBody text here.";
+        let result = fix_frontmatter_name(input, "new");
+        assert!(result.contains("# Title"));
+        assert!(result.contains("Body text here."));
+    }
+
+    #[test]
+    fn fix_frontmatter_name_no_frontmatter_unchanged() {
+        let input = "# Just a heading\nsome body text";
+        let result = fix_frontmatter_name(input, "my-skill");
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn fix_frontmatter_name_unclosed_frontmatter_still_replaces() {
+        let input = "---\nname: old\ndescription: test";
+        let result = fix_frontmatter_name(input, "new-name");
+        assert!(result.contains("name: new-name"));
+        assert!(!result.contains("name: old"));
+    }
+
+    #[test]
+    fn fix_frontmatter_name_does_not_replace_name_outside_frontmatter() {
+        let input = "---\nname: old\n---\nname: this-should-stay";
+        let result = fix_frontmatter_name(input, "replaced");
+        assert!(result.contains("name: replaced"));
+        assert!(result.contains("name: this-should-stay"));
+    }
+
+    // ── App initialisation ────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn app_initial_state_is_idle() {
+        let app = App::new(tmp_cfg("init_state")).await.unwrap();
+        assert_eq!(app.state, AppState::Idle);
+    }
+
+    #[tokio::test]
+    async fn app_initial_tab_is_skills() {
+        let app = App::new(tmp_cfg("init_tab")).await.unwrap();
+        assert_eq!(app.active_tab, AppTab::Skills);
+    }
+
+    #[tokio::test]
+    async fn app_initial_focus_is_tool_list() {
+        let app = App::new(tmp_cfg("init_focus")).await.unwrap();
+        assert_eq!(app.focus, Focus::ToolList);
+    }
+
+    #[tokio::test]
+    async fn app_tools_list_contains_curated_tools() {
+        let app = App::new(tmp_cfg("init_tools")).await.unwrap();
+        let names: Vec<&str> = app.tools.iter().map(|t| t.name.as_str()).collect();
+        assert!(names.contains(&"claude-code"));
+        assert!(names.contains(&"codex"));
+        assert!(names.contains(&"gemini-cli"));
+        assert!(names.contains(&"opencode"));
+        assert!(names.contains(&"copilot-cli"));
+    }
+
+    #[tokio::test]
+    async fn app_filtered_indices_matches_tools_on_start() {
+        let app = App::new(tmp_cfg("init_filter")).await.unwrap();
+        assert_eq!(app.filtered_indices.len(), app.tools.len());
+    }
+
+    #[tokio::test]
+    async fn app_has_four_providers() {
+        let app = App::new(tmp_cfg("init_providers")).await.unwrap();
+        assert_eq!(app.providers.len(), 4);
+        let ids: Vec<&str> = app.providers.iter().map(|p| p.id).collect();
+        assert!(ids.contains(&"claude"));
+        assert!(ids.contains(&"openai"));
+        assert!(ids.contains(&"gemini"));
+        assert!(ids.contains(&"openrouter"));
+    }
+
+    // ── update_filter ─────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn update_filter_empty_shows_all() {
+        let mut app = App::new(tmp_cfg("filter_empty")).await.unwrap();
+        app.filter = String::new();
+        app.update_filter();
+        assert_eq!(app.filtered_indices.len(), app.tools.len());
+    }
+
+    #[tokio::test]
+    async fn update_filter_narrows_by_name() {
+        let mut app = App::new(tmp_cfg("filter_narrow")).await.unwrap();
+        app.filter = "claude".to_string();
+        app.update_filter();
+        for &idx in &app.filtered_indices {
+            assert!(app.tools[idx].name.contains("claude"));
+        }
+    }
+
+    #[tokio::test]
+    async fn update_filter_no_match_empties_indices() {
+        let mut app = App::new(tmp_cfg("filter_nomatch")).await.unwrap();
+        app.filter = "zzznomatch999xyz".to_string();
+        app.update_filter();
+        assert!(app.filtered_indices.is_empty());
+        assert_eq!(app.list_index, 0);
+    }
+
+    #[tokio::test]
+    async fn update_filter_is_case_insensitive() {
+        let mut app = App::new(tmp_cfg("filter_case")).await.unwrap();
+        app.filter = "CLAUDE".to_string();
+        app.update_filter();
+        for &idx in &app.filtered_indices {
+            assert!(app.tools[idx].name.to_lowercase().contains("claude"));
+        }
+    }
+
+    // ── move_list_up / move_list_down ─────────────────────────────────────────
+
+    #[tokio::test]
+    async fn move_list_down_increments_index() {
+        let mut app = App::new(tmp_cfg("nav_down")).await.unwrap();
+        assert!(app.tools.len() > 1);
+        app.list_index = 0;
+        app.move_list_down();
+        assert_eq!(app.list_index, 1);
+    }
+
+    #[tokio::test]
+    async fn move_list_up_decrements_index() {
+        let mut app = App::new(tmp_cfg("nav_up")).await.unwrap();
+        app.list_index = 1;
+        app.move_list_up();
+        assert_eq!(app.list_index, 0);
+    }
+
+    #[tokio::test]
+    async fn move_list_up_does_not_underflow() {
+        let mut app = App::new(tmp_cfg("nav_up_clamp")).await.unwrap();
+        app.list_index = 0;
+        app.move_list_up();
+        assert_eq!(app.list_index, 0);
+    }
+
+    #[tokio::test]
+    async fn move_list_down_does_not_exceed_max() {
+        let mut app = App::new(tmp_cfg("nav_down_clamp")).await.unwrap();
+        let max = app.filtered_indices.len() - 1;
+        app.list_index = max;
+        app.move_list_down();
+        assert_eq!(app.list_index, max);
+    }
+
+    // ── toggle_selection ──────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn toggle_selection_adds_tool_name() {
+        let mut app = App::new(tmp_cfg("toggle_add")).await.unwrap();
+        app.list_index = 0;
+        let name = app.tools[app.filtered_indices[0]].name.clone();
+        app.toggle_selection();
+        assert!(app.selected_tools.contains(&name));
+    }
+
+    #[tokio::test]
+    async fn toggle_selection_removes_when_already_selected() {
+        let mut app = App::new(tmp_cfg("toggle_remove")).await.unwrap();
+        app.list_index = 0;
+        let name = app.tools[app.filtered_indices[0]].name.clone();
+        app.toggle_selection(); // add
+        app.toggle_selection(); // remove
+        assert!(!app.selected_tools.contains(&name));
+    }
+
+    // ── handle_stream_token ───────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn handle_stream_token_appends_text_to_output() {
+        let mut app = App::new(tmp_cfg("stream_append")).await.unwrap();
+        app.handle_stream_token(StreamToken::Token("hello".to_string()));
+        app.handle_stream_token(StreamToken::Token(" world".to_string()));
+        assert_eq!(app.output, "hello world");
+    }
+
+    #[tokio::test]
+    async fn handle_stream_token_done_sets_ready_state() {
+        let mut app = App::new(tmp_cfg("stream_done")).await.unwrap();
+        app.state = AppState::Generating;
+        app.handle_stream_token(StreamToken::Done);
+        assert_eq!(app.state, AppState::Ready);
+    }
+
+    #[tokio::test]
+    async fn handle_stream_token_done_sets_status_message() {
+        let mut app = App::new(tmp_cfg("stream_done_msg")).await.unwrap();
+        app.handle_stream_token(StreamToken::Done);
+        let (msg, is_err) = app.status_message.unwrap();
+        assert!(!is_err);
+        assert!(msg.contains("Install") || msg.contains("Copy") || msg.contains("Regenerate"));
+    }
+
+    #[tokio::test]
+    async fn handle_stream_token_error_sets_error_state() {
+        let mut app = App::new(tmp_cfg("stream_error")).await.unwrap();
+        app.handle_stream_token(StreamToken::Error("something failed".to_string()));
+        assert!(matches!(app.state, AppState::Error(_)));
+    }
+
+    #[tokio::test]
+    async fn handle_stream_token_error_sets_error_output() {
+        let mut app = App::new(tmp_cfg("stream_error_out")).await.unwrap();
+        app.handle_stream_token(StreamToken::Error("boom".to_string()));
+        assert_eq!(app.output, "boom");
+    }
+
+    #[tokio::test]
+    async fn handle_stream_token_error_sets_status_message_as_error() {
+        let mut app = App::new(tmp_cfg("stream_error_msg")).await.unwrap();
+        app.handle_stream_token(StreamToken::Error("fail".to_string()));
+        let (_, is_err) = app.status_message.unwrap();
+        assert!(is_err);
+    }
+
+    // ── handle_models_loaded ──────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn handle_models_loaded_updates_available_models() {
+        let mut app = App::new(tmp_cfg("models_loaded")).await.unwrap();
+        let id = app.providers[0].id.to_string();
+        app.handle_models_loaded(id.clone(), vec!["m-a".to_string(), "m-b".to_string()]);
+        let p = app.providers.iter().find(|p| p.id == id).unwrap();
+        assert_eq!(p.available_models, vec!["m-a", "m-b"]);
+    }
+
+    #[tokio::test]
+    async fn handle_models_loaded_clears_loading_flag() {
+        let mut app = App::new(tmp_cfg("models_loading")).await.unwrap();
+        let id = app.providers[0].id.to_string();
+        app.providers[0].models_loading = true;
+        app.handle_models_loaded(id.clone(), vec![]);
+        let p = app.providers.iter().find(|p| p.id == id).unwrap();
+        assert!(!p.models_loading);
+    }
+
+    #[tokio::test]
+    async fn handle_models_loaded_unknown_id_is_noop() {
+        let mut app = App::new(tmp_cfg("models_unknown")).await.unwrap();
+        // Should not panic
+        app.handle_models_loaded("does-not-exist".to_string(), vec!["m".to_string()]);
+    }
+}
+
 // ── Provider initialisation ───────────────────────────────────────────────────
 
 fn init_providers() -> Vec<ProviderEntry> {

@@ -1,5 +1,6 @@
 // Google Gemini — streamGenerateContent (SSE)
-// Endpoint: POST https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={API_KEY}
+// Endpoint: POST https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse
+// Auth: x-goog-api-key header (avoids key exposure in URL logs)
 // Docs: https://ai.google.dev/api/generate-content
 
 use anyhow::Result;
@@ -9,7 +10,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 // ── Model listing ─────────────────────────────────────────────────────────────
-// GET https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}
+// GET https://generativelanguage.googleapis.com/v1beta/models
+// Auth: x-goog-api-key header
 // Response: { "models": [{ "name": "models/gemini-2.0-flash", "supportedGenerationMethods": [...] }] }
 
 #[derive(Deserialize)]
@@ -27,8 +29,11 @@ struct GeminiModelEntry {
 /// Fetch available Gemini models that support content generation.
 pub async fn fetch_models(api_key: &str) -> Vec<String> {
     let client = reqwest::Client::new();
-    let url = format!("https://generativelanguage.googleapis.com/v1beta/models?key={api_key}");
-    let resp = client.get(&url).send().await;
+    let resp = client
+        .get("https://generativelanguage.googleapis.com/v1beta/models")
+        .header("x-goog-api-key", api_key)
+        .send()
+        .await;
 
     match resp {
         Ok(r) if r.status().is_success() => {
@@ -147,10 +152,9 @@ impl AIProvider for GeminiProvider {
         requirement: &str,
         tx: mpsc::Sender<StreamToken>,
     ) -> Result<()> {
-        // Gemini API key is passed as a query parameter, not a header
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:streamGenerateContent?alt=sse&key={}",
-            self.model, self.api_key
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:streamGenerateContent?alt=sse",
+            self.model
         );
 
         let body = GeminiRequest {
@@ -174,6 +178,7 @@ impl AIProvider for GeminiProvider {
         let response = self
             .client
             .post(&url)
+            .header("x-goog-api-key", &self.api_key)
             .header("Content-Type", "application/json")
             .json(&body)
             .send()

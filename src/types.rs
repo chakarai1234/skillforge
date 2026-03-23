@@ -116,3 +116,187 @@ impl ProviderEntry {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    fn make_entry() -> ProviderEntry {
+        ProviderEntry {
+            id: "test",
+            display: "Test Provider",
+            env_var: "TEST_UNUSED_VAR",
+            default_model: "model-x",
+            api_key: String::new(),
+            model: "model-x".to_string(),
+            show_key: false,
+            available_models: Vec::new(),
+            model_idx: 0,
+            models_loading: false,
+        }
+    }
+
+    // ── ProviderEntry::new ────────────────────────────────────────────────────
+
+    #[test]
+    #[allow(deprecated)]
+    fn provider_entry_new_sets_fields() {
+        // SAFETY: unique var name, no other test reads or sets it.
+        unsafe {
+            env::remove_var("SKILLFORGE_TEST_KEY_NEW");
+        }
+        let e = ProviderEntry::new("p", "My P", "SKILLFORGE_TEST_KEY_NEW", "m1");
+        assert_eq!(e.id, "p");
+        assert_eq!(e.display, "My P");
+        assert_eq!(e.env_var, "SKILLFORGE_TEST_KEY_NEW");
+        assert_eq!(e.default_model, "m1");
+        assert_eq!(e.model, "m1");
+        assert_eq!(e.api_key, "");
+        assert!(!e.show_key);
+        assert!(e.available_models.is_empty());
+        assert_eq!(e.model_idx, 0);
+        assert!(!e.models_loading);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn provider_entry_new_reads_env_key() {
+        // SAFETY: tests run in a single-threaded harness and use a unique var name
+        // not shared with any other test.
+        unsafe {
+            env::set_var("SKILLFORGE_TEST_KEY_READ", "sk-hello");
+        }
+        let e = ProviderEntry::new("p", "P", "SKILLFORGE_TEST_KEY_READ", "m");
+        assert_eq!(e.api_key, "sk-hello");
+        unsafe {
+            env::remove_var("SKILLFORGE_TEST_KEY_READ");
+        }
+    }
+
+    // ── is_configured ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn is_configured_false_when_empty() {
+        let e = make_entry();
+        assert!(!e.is_configured());
+    }
+
+    #[test]
+    fn is_configured_true_when_key_set() {
+        let mut e = make_entry();
+        e.api_key = "some-key".to_string();
+        assert!(e.is_configured());
+    }
+
+    // ── display_key ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn display_key_empty_returns_placeholder() {
+        let e = make_entry();
+        assert_eq!(e.display_key(), "(not set — Tab to configure)");
+    }
+
+    #[test]
+    fn display_key_masked_starts_with_first_four_chars() {
+        let mut e = make_entry();
+        e.api_key = "sk-abcdefgh".to_string();
+        let result = e.display_key();
+        assert!(result.starts_with("sk-a"));
+        assert!(result.contains('*'));
+    }
+
+    #[test]
+    fn display_key_short_key_no_mask() {
+        let mut e = make_entry();
+        e.api_key = "abc".to_string(); // len=3, saturating_sub(4)=0 → no stars
+        let result = e.display_key();
+        assert_eq!(result, "abc");
+    }
+
+    #[test]
+    fn display_key_show_plain_returns_full_key() {
+        let mut e = make_entry();
+        e.api_key = "sk-full-key".to_string();
+        e.show_key = true;
+        assert_eq!(e.display_key(), "sk-full-key");
+    }
+
+    #[test]
+    fn display_key_mask_capped_at_20_stars() {
+        let mut e = make_entry();
+        e.api_key = "x".repeat(60); // very long
+        let result = e.display_key();
+        let star_count = result.chars().filter(|&c| c == '*').count();
+        assert!(star_count <= 20);
+    }
+
+    // ── sync_model_idx ────────────────────────────────────────────────────────
+
+    #[test]
+    fn sync_model_idx_finds_correct_index() {
+        let mut e = make_entry();
+        e.available_models = vec!["m1".to_string(), "m2".to_string(), "m3".to_string()];
+        e.model = "m2".to_string();
+        e.sync_model_idx();
+        assert_eq!(e.model_idx, 1);
+    }
+
+    #[test]
+    fn sync_model_idx_not_found_keeps_zero() {
+        let mut e = make_entry();
+        e.available_models = vec!["m1".to_string(), "m2".to_string()];
+        e.model = "unknown".to_string();
+        e.model_idx = 0;
+        e.sync_model_idx();
+        assert_eq!(e.model_idx, 0);
+    }
+
+    #[test]
+    fn sync_model_idx_empty_models_unchanged() {
+        let mut e = make_entry();
+        e.available_models = vec![];
+        e.model_idx = 0;
+        e.sync_model_idx();
+        assert_eq!(e.model_idx, 0);
+    }
+
+    // ── AppState / AppTab / StreamToken ───────────────────────────────────────
+
+    #[test]
+    fn app_state_equality() {
+        assert_eq!(AppState::Idle, AppState::Idle);
+        assert_eq!(AppState::Ready, AppState::Ready);
+        assert_eq!(AppState::Generating, AppState::Generating);
+        assert_eq!(AppState::Error("x".into()), AppState::Error("x".into()));
+        assert_ne!(AppState::Idle, AppState::Ready);
+        assert_ne!(AppState::Error("a".into()), AppState::Error("b".into()));
+    }
+
+    #[test]
+    fn app_tab_equality() {
+        assert_eq!(AppTab::Skills, AppTab::Skills);
+        assert_eq!(AppTab::Providers, AppTab::Providers);
+        assert_ne!(AppTab::Skills, AppTab::Providers);
+    }
+
+    #[test]
+    fn stream_token_debug_does_not_panic() {
+        let _ = format!("{:?}", StreamToken::Token("hello".to_string()));
+        let _ = format!("{:?}", StreamToken::Done);
+        let _ = format!("{:?}", StreamToken::Error("oops".to_string()));
+    }
+
+    #[test]
+    fn tool_entry_fields() {
+        let e = ToolEntry {
+            name: "claude-code".to_string(),
+            path: std::path::PathBuf::from("claude-code"),
+            has_skill: true,
+            skill_path: std::path::PathBuf::from("/home/user/.claude/skills/claude-code/SKILL.md"),
+        };
+        assert_eq!(e.name, "claude-code");
+        assert!(e.has_skill);
+        assert_eq!(e.skill_path.file_name().unwrap(), "SKILL.md");
+    }
+}
