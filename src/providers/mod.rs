@@ -203,11 +203,6 @@ mod tests {
     // ── SKILL_SYSTEM_PROMPT ───────────────────────────────────────────────────
 
     #[test]
-    fn system_prompt_is_not_empty() {
-        assert!(!SKILL_SYSTEM_PROMPT.is_empty());
-    }
-
-    #[test]
     fn system_prompt_mentions_skill_md() {
         assert!(SKILL_SYSTEM_PROMPT.contains("SKILL.md"));
     }

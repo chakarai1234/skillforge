@@ -837,6 +837,32 @@ fn fix_frontmatter_name(content: &str, skill_name: &str) -> String {
         .join("\n")
 }
 
+// ── Provider initialisation ───────────────────────────────────────────────────
+
+fn init_providers() -> Vec<ProviderEntry> {
+    vec![
+        ProviderEntry::new(
+            "claude",
+            "Claude (Anthropic)",
+            "ANTHROPIC_API_KEY",
+            "claude-sonnet-4-6",
+        ),
+        ProviderEntry::new("openai", "OpenAI", "OPENAI_API_KEY", "gpt-4o"),
+        ProviderEntry::new(
+            "gemini",
+            "Google Gemini",
+            "GEMINI_API_KEY",
+            "gemini-2.0-flash",
+        ),
+        ProviderEntry::new(
+            "openrouter",
+            "OpenRouter",
+            "OPENROUTER_API_KEY",
+            "openai/gpt-4o",
+        ),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1116,30 +1142,4 @@ mod tests {
         // Should not panic
         app.handle_models_loaded("does-not-exist".to_string(), vec!["m".to_string()]);
     }
-}
-
-// ── Provider initialisation ───────────────────────────────────────────────────
-
-fn init_providers() -> Vec<ProviderEntry> {
-    vec![
-        ProviderEntry::new(
-            "claude",
-            "Claude (Anthropic)",
-            "ANTHROPIC_API_KEY",
-            "claude-sonnet-4-6",
-        ),
-        ProviderEntry::new("openai", "OpenAI", "OPENAI_API_KEY", "gpt-4o"),
-        ProviderEntry::new(
-            "gemini",
-            "Google Gemini",
-            "GEMINI_API_KEY",
-            "gemini-2.0-flash",
-        ),
-        ProviderEntry::new(
-            "openrouter",
-            "OpenRouter",
-            "OPENROUTER_API_KEY",
-            "openai/gpt-4o",
-        ),
-    ]
 }
