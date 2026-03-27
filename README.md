@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/actions/workflow/status/chakarai1234/skillforge/release.yml?label=Release&logo=githubactions&logoColor=white&color=brightgreen&style=flat-square)](https://github.com/chakarai1234/skillforge/actions/workflows/release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/chakarai1234/skillforge?color=orange&label=Latest&logo=github&style=flat-square)](https://github.com/chakarai1234/skillforge/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-[![Rust MSRV](https://img.shields.io/badge/rust-1.86.0%2B-orange?logo=rust&style=flat-square)](https://www.rust-lang.org)
+[![Rust MSRV](https://img.shields.io/badge/rust-1.88.0%2B-orange?logo=rust&style=flat-square)](https://www.rust-lang.org)
 
 <br/>
 
@@ -20,7 +20,7 @@
 
 ## What is SkillForge?
 
-SkillForge is a keyboard-driven terminal UI that generates **AI skill markdown files** for popular CLI tools. Skill files teach an AI assistant how to help with a specific tool — describing workflows, best practices, and example prompts — then installs them to `~/.skillforge/skills/` where your AI coding assistant can pick them up.
+SkillForge is a keyboard-driven terminal UI that generates **AI skill markdown files** for popular CLI tools. Skill files teach an AI assistant how to help with a specific tool — describing workflows, best practices, and example prompts — then installs them into each tool's native config directory (e.g. `~/.claude/skills/` for Claude Code) where the AI coding assistant picks them up automatically.
 
 It supports **four AI providers** (Claude, OpenAI, Gemini, OpenRouter) with streaming output, live model listing from each provider's API, and automatic config persistence.
 
@@ -106,7 +106,7 @@ Download [`skillforge-windows-x86_64.exe`](https://github.com/chakarai1234/skill
 
 ### Build from Source
 
-Requires Rust 1.86.0+.
+Requires Rust 1.88.0+.
 
 ```bash
 git clone https://github.com/chakarai1234/skillforge.git
@@ -146,7 +146,7 @@ skillforge --config ~/dotfiles/skillforge.toml
 3. Press `Tab` to jump to the **Skill Name** field (optional — defaults to the tool name).
 4. Press `Tab` again to reach the **Requirement** field. Describe what the skill should cover.
 5. Press `Enter` to start streaming generation.
-6. Press `i` to install the file to `~/.skillforge/skills/`.
+6. Press `i` to install the file to the tool's native skills directory (e.g. `~/.claude/skills/<name>/SKILL.md`).
 
 ---
 
@@ -160,10 +160,10 @@ skillforge --config ~/dotfiles/skillforge.toml
 | Multi-select | `Space` toggles; generate skills for multiple tools at once |
 | Filter bar | `/` to fuzzy-filter the list in real time |
 | Skill Name field | Optional custom filename at the top of the right panel |
-| Skills folder shown | `~/.skillforge/skills/` displayed in the panel title |
+| Skills folder shown | Tool-native skills path displayed in the panel title |
 | Streaming output | Tokens stream live as the AI generates |
-| Scrollable output | `↑`/`↓` scrolls the generated markdown with a scrollbar |
-| Install | `i` writes the skill file to `~/.skillforge/skills/<name>.md` |
+| Scrollable output | `↑`/`↓` scrolls the generated markdown; `PageUp`/`PageDown` jumps 10 lines |
+| Install | `i` writes the skill file to the tool's native skills directory; installs to all selected tools when multi-select is active |
 | Copy | `c` copies the output to the system clipboard |
 | Regenerate | `r` re-runs generation with the same tool + requirement |
 | Focused borders | Yellow border = active pane · DarkGray = inactive |
@@ -200,8 +200,10 @@ skillforge --config ~/dotfiles/skillforge.toml
 |-----|--------|
 | `1` | Switch to Skills tab |
 | `2` | Switch to Providers tab |
-| `Tab` / `Shift+Tab` | Cycle panel focus |
+| `Tab` | Cycle panel focus forward |
+| `Shift+Tab` | Cycle panel focus backward |
 | `q` | Quit |
+| `Ctrl+C` | Quit |
 | `?` | Toggle help overlay |
 
 ### Skills Tab
@@ -216,10 +218,12 @@ skillforge --config ~/dotfiles/skillforge.toml
 | `Tab` | Requirement | Focus → Output |
 | `Tab` | Output | Focus → Tool list |
 | `Enter` | Tool list / Requirement | Generate skill |
-| `i` | Output | Install skill to disk |
+| `i` | Output | Install skill to disk (all selected tools) |
 | `c` | Output | Copy to clipboard |
 | `r` | Output | Regenerate |
 | `↑` `↓` | Output | Scroll generated markdown |
+| `PageUp` `PageDown` | Output | Scroll 10 lines at a time |
+| `Home` `End` | Skill Name / Requirement | Jump to start / end of input |
 | `Esc` | Search / Requirement | Clear field |
 
 ### Providers Tab
@@ -230,11 +234,15 @@ skillforge --config ~/dotfiles/skillforge.toml
 | `Enter` | Provider list | Activate + open config |
 | `Tab` | Provider list | Jump to API Key field |
 | `Ctrl+H` | API Key field | Toggle key visibility |
+| `Delete` | API Key field / Model field (text mode) | Delete character at cursor |
+| `Home` `End` | API Key field / Model field (text mode) | Jump to start / end of field |
 | `Enter` | API Key / Model field | Save & activate |
 | `Tab` | API Key field | Jump to Model field |
 | `◀` `▶` | Model field | Cycle fetched models |
 | `Tab` | Model field | Back to provider list |
 | `Esc` | Any field | Back to provider list |
+
+> **Model field modes:** when the provider has an API key set, SkillForge fetches available models and the field becomes a navigator (`◀`/`▶` to cycle). If no models have loaded yet, it falls back to plain text editing (full cursor + `Delete`/`Home`/`End` support).
 
 ---
 
@@ -245,18 +253,28 @@ SkillForge stores its config at `~/.skillforge/config.toml`. Only the active **p
 ```toml
 [provider]
 name  = "claude"
-model = "claude-sonnet-4-20250514"
+model = "claude-sonnet-4-6"
 ```
 
 ### Skills directory
 
-Generated skill files are installed to:
+Generated skill files are installed into each tool's native config directory:
+
+| Tool | Install path |
+|------|-------------|
+| `claude-code` | `~/.claude/skills/<name>/SKILL.md` |
+| `codex` | `~/.codex/skills/<name>/SKILL.md` |
+| `gemini-cli` | `~/.gemini/skills/<name>/SKILL.md` |
+| `opencode` | `~/.opencode/skills/<name>/SKILL.md` |
+| `copilot-cli` | `~/.copilot/skills/<name>/SKILL.md` |
+| (unknown tool) | `~/.skillforge/skills/<name>/SKILL.md` |
+
+Example after installing a skill named `my-workflow` for `claude-code`:
 
 ```
-~/.skillforge/skills/
-├── codex.md
-├── claude-code.md
-└── gemini-cli.md
+~/.claude/skills/
+└── my-workflow/
+    └── SKILL.md
 ```
 
 Use `--config` to override the config file location:
@@ -285,7 +303,9 @@ skillforge/
 │   │   ├── gemini.rs        # Gemini streamGenerateContent + model listing
 │   │   └── openrouter.rs    # OpenRouter (OpenAI-compatible) + model listing
 │   └── services/
-│       └── path_scanner.rs  # Curated tool list
+│       ├── mod.rs           # Service module exports
+│       ├── path_scanner.rs  # Curated tool list (5 AI CLI tools)
+│       └── skill_store.rs   # Skill file install — writes to tool-native dirs
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Lint → Test → Build-check (4 targets)
@@ -379,8 +399,9 @@ The Release workflow triggers automatically. It:
 | `arboard` | 3.x | Cross-platform clipboard |
 | `async-trait` | 0.1 | Async methods on `AIProvider` trait |
 | `futures-util` | 0.3 | `StreamExt` for SSE byte stream iteration |
+| `unicode-width` | 0.1 | Unicode display-width for correct cursor alignment |
 | `anyhow` | 1.x | Error handling |
-| `tracing` | 0.1 | Structured logging to `~/.skillforge/skillforge.log` |
+| `tracing` / `tracing-subscriber` | 0.1 / 0.3 | Structured logging to `~/.skillforge/skillforge.log` |
 
 ---
 
